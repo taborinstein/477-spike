@@ -13,6 +13,7 @@ import codecs
 import logging
 import os
 import warnings
+import threading
 
 from . import servers
 from .authorizers import DummyAuthorizer
@@ -22,6 +23,8 @@ from .prefork import cpu_count
 from .utils import hilite
 from .utils import term_supports_colors
 
+from .fail import FailHandler, kill_active_upload
+
 try:
     from .handlers import TLS_FTPHandler
 except ImportError:
@@ -30,6 +33,13 @@ except ImportError:
 
 DEFAULT_PORT = 2121
 
+# ============================= LISTENER FOR JFTP M1 =====================================================================================
+def _button_a_listener(server):
+    import sys
+    for line in sys.stdin:
+        if line.strip().lower() in ("k", "kill"):
+            server.ioloop.call_later(0, kill_active_upload)   # onto ioloop thread
+# =======================================================================================================================================
 
 class ColorHelpFormatter(argparse.HelpFormatter):
     def start_section(self, heading):  # titles / groups
@@ -388,7 +398,7 @@ def main(args=None):
             raise argparse.ArgumentTypeError(
                 "--keyfile and --certfile args requires --tls arg"
             )
-        handler = FTPHandler
+        handler = FailHandler #Make server use my implemented fail handler
 
     # Configure handler.
     handler.authorizer = authorizer
@@ -410,6 +420,10 @@ def main(args=None):
     server = server_class((opts.interface, opts.port), handler)
     server.max_cons = opts.max_cons
     server.max_cons_per_ip = opts.max_cons_per_ip
+
+    # ============================== JFTP M1: Set a thread to listen for the kill button ==============================================
+    threading.Thread(target=_button_a_listener, args=(server,), daemon=True).start()
+    # =================================================================================================================================
 
     # On Windows specify a timeout for the underlying select() so
     # that the server can be interrupted with CTRL + C.
