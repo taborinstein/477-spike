@@ -38,7 +38,7 @@ def kill_active_upload():
             return True
     return False
 
-#Class to actually handle failures
+#Class to actually handle failures in both lines
 class FailHandler(FTPHandler):
 
     # Register

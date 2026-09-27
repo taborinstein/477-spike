@@ -65,6 +65,72 @@ public class DataConnection implements Runnable {
     private String newLine = null;
     private String LINEEND = System.getProperty("line.separator");
 
+    
+// ================================================ JFTP M1 =====================================================================================
+    private boolean m1Fail = false;
+    private int failReason = 0; // 0 = none, 1 = control lost, 2 = data error. NOTE: Make an enum later
+    private long serverCommitted = 0; //Number of bytes already sent, calculated and returned by the server
+
+    public boolean hasError() {
+        return m1Fail;
+    }
+
+    public int getFailReason() {
+        return failReason;
+    }
+
+    public long getServerCommitted() {
+        return serverCommitted;
+    }
+
+    //Match the codes defined in the server file
+    private static final byte[] MARK = {'K', 'B', 'M', '1'};
+    public static final int REASON_CONTROL_LOST = 4;
+    public static final int REASON_DATA_ERROR = 5; //Also could be an enum if more reasons are added in later spikes
+
+    /**
+     * Called from the PUT(upload) part of run() if it fails. During a file upload (initiated by STOR), the server -> client direction of
+     * the data line socket is idle because of passive mode. So the server may have put a fail message in there. The message will be 13
+     * bytes: MARK + type +  committed.
+     * If a message is in the line, then the control connection was lost
+     * If there is nothing on the line, but a timeout happened, then the data connection was lost
+     * The reason needs to be read BEFORE the socket is closed
+     */
+    private void readReason() {
+        try {
+            sock.setSoTimeout(2000); //Shorten timeout because the failure message comes through the data line fast
+            InputStream rin = sock.getInputStream();
+
+            byte[] rdin = new byte[13];
+            int n = 0;
+            while (n < rdin.length){
+                int r = rin.read(rdin, n, rdin.length - n);
+                if (r < 0) { //Check for the end of the message
+                    break;
+                }
+                n += r;
+            }
+
+            //Check that the message uses the MARK specified earlier
+            if (n == rdin.length && rdin[0] == MARK[0] && rdin[1] == MARK[1] && rdin[2] == MARK[2] && rdin[3] == MARK[3]){
+                failReason = rdin[4]; //set failReason to the type given in the message. May add other fail cases in later spikes, so it has a specific value
+                long c = 0;
+                for(int i = 5; i < 13; i++){
+                    c = c * 256 + (rdin[i]); //Calculate number of bytes server says were uploaded
+                }
+            } else {
+                failReason = REASON_DATA_ERROR; //No message, but timeout = data line failure
+            }
+        } catch(Exception e) {
+            failReason = REASON_DATA_ERROR; //Assumes e is SocketTimeoutException
+            Log.debug("readReason: " + e);
+        } finally {
+            m1Fail = true;
+        }
+    }
+
+// ============================================================================================================================================
+
     public DataConnection(FtpConnection con, int port, String host,
             String file, String type) {
         this.con = con;
@@ -452,12 +518,16 @@ public class DataConnection implements Runnable {
                                 out.flush();
 
                                 // Log.debugSize(len, false, true, file);
+
+// =========================================== JFTP M1 - MODIFIED THIS PART ==================================================================
                             } catch (IOException ex) {
                                 ok = false;
                                 debug("Error: Data connection closed.");
+                                readReason(); //M1 figure out what the failure was. Otherwise the same.
                                 con.fireProgressUpdate(file, FAILED, -1);
                                 ex.printStackTrace();
                             }
+// =========================================================================================================================================
                         }
                     }
                 }

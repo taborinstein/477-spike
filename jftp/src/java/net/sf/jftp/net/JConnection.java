@@ -47,6 +47,35 @@ public class JConnection implements Runnable
     private int localPort = -1;
     //private int time = 0;
 
+// ============================================= JFTP M1 =====================================================================================
+    /** Close the control connection */
+    public void close() {
+        try {
+            if (out != null) {
+                out.close();
+            }
+        } catch (Exception ex) {
+            Log.debug("JConnection.close (out): " + ex);
+        }
+
+        try {
+            if(in != null) {
+                in.close();
+            }
+        } catch (Exception ex) {
+            Log.debug("JConnection.close (in): " + ex);
+        }
+
+        try {
+            if(s != null && !s.isClosed()) {
+                s.close();
+            }
+        } catch(Exception ex) {
+            Log.debug("JConnection.close (socket): " + ex);
+        }
+    }
+// ==========================================================================================================================================
+
     /*
     private boolean useSocks4 = false;
     private String socks4Host = "192.168.0.1";

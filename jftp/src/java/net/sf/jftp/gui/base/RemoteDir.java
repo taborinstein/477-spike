@@ -1072,6 +1072,15 @@ public class RemoteDir extends DirComponent implements ListSelectionListener,
     {
         Log.out("remote connection failed");
 
+// ========================================== JFTP M1: explicit fail messages=================================================================
+        if(reason != null && reason.equals("CONTROL_LOST"))
+        {
+            JOptionPane.showMessageDialog(JFtp.mainFrame,
+                "Upload failed: the control connection was lost.",
+                "Connection failed", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+// ====================================================================================================================================
         if((Integer.parseInt(reason) == FtpConnection.OFFLINE) &&
                Settings.reconnect)
         {

@@ -309,6 +309,23 @@ public class JFtp extends JPanel implements WindowListener, ComponentListener,
         bottomBar.setFloatable(false);
         bottomBar.add(statusP.status, FlowLayout.LEFT);
 
+// ========================================== JFTP M1 =======================================================================================
+        javax.swing.JButton killControlBtn = new javax.swing.JButton("Kill Control");
+        killControlBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                BasicConnection con = remoteDir.getCon();
+                if (con instanceof FtpConnection) {
+                    ((FtpConnection) con).killControlConnection();
+                    statusP.status("Control connection killed (manual)");
+                } else {
+                    statusP.status("No FTP connection to kill");
+                }
+            }
+        });
+        bottomBar.add(killControlBtn);
+// ===========================================================================================================================================
+
         if(Settings.getEnableRSS())
         {
         	addRSS();
