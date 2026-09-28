@@ -13,6 +13,8 @@ import codecs
 import logging
 import os
 import warnings
+import threading
+import sys
 
 from . import servers
 from .authorizers import DummyAuthorizer
@@ -342,6 +344,38 @@ def parse_args(args=None):
     return parser.parse_args(args)
 
 
+def restart_0(server): # done
+    for client in server.clients:
+        client.reset_data_channel()
+def restart_1(server):
+    for client in server.clients:
+        client.restart_data_connection()
+def restart_2(server):
+    # restart the ioloop
+    server.ioloop.close()
+def restart_3(server): # done
+    # reset the entire process by using the exec syscall
+    args = sys.argv
+    args.pop(0)
+    args = ["-m", "pyftpdlib"] + args
+    os.execl(sys.executable, sys.executable, *args)
+
+def input_handler(server):
+    while True:
+        cmd = input()
+        cmds = { 
+            "restart.0": lambda: restart_0(server),
+            "restart.1": lambda: restart_1(server),
+            "restart.2": lambda: restart_2(server),
+            "restart.3": lambda: restart_3(server)
+                
+        }
+        if not cmd in cmds:
+            print(f"Command not found: {cmd}")
+        else:
+            cmds[cmd]()
+
+
 def main(args=None):
     """Start a standalone anonymous FTP server."""
     opts = parse_args(args=args)
@@ -416,7 +450,11 @@ def main(args=None):
     timeout = 2 if os.name == "nt" else None
 
     try:
+        threading.Thread(target=input_handler, args=(server,), daemon=True).start()
+        # thread = threading.Thread(target=lambda: 
         server.serve_forever(timeout=timeout, worker_processes=ncpus)
+        # )
+        # thread.start()
     finally:
         server.close_all()
 
