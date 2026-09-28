@@ -67,7 +67,8 @@ public class HostChooser extends HFrame implements ActionListener,
     //public static HTextField pass = new HTextField("Password:","none@nowhere.no");
     public HPasswordField pass = new HPasswordField("Password:",
                                                     "none@nowhere.no");
-    public HTextField port = new HTextField("Port:    ", "21");
+    public HTextField port = new HTextField("Port:    ", "12345");
+    public HTextField port2 = new HTextField("Backup Port:    ", "23456");
     public HTextField cwd = new HTextField("Remote:  ", Settings.defaultDir);
     public HTextField lcwd = new HTextField("Local:   ", Settings.defaultWorkDir);
     public HTextField dl = new HTextField("Max. connections:    ", "3");
@@ -119,8 +120,8 @@ public class HostChooser extends HFrame implements ActionListener,
         pass.text.setEnabled(true);
 
         try {
-        	LoadSet l = new LoadSet();
-        	String[] login = l.loadSet(Settings.login_def);
+//        	LoadSet l = new LoadSet();
+        	String[] login = LoadSet.loadSet(Settings.login_def);
 
         	if((login != null) && (login[0] != null))
         	{
@@ -164,7 +165,9 @@ public class HostChooser extends HFrame implements ActionListener,
         root.setLayout(new MigLayout());
         
         root.add(host);
-        root.add(port, "wrap");
+        root.add(new JLabel(" "),"wrap");
+        root.add(port);
+        root.add(port2, "wrap");
         root.add(user);
         root.add(pass, "wrap");
         root.add(anonBox, "wrap");
