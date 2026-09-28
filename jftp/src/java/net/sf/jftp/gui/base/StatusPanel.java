@@ -219,7 +219,11 @@ public class StatusPanel extends HPanel implements ActionListener
             hc.update();
         }
         // switch connection action handling
-        
+        else if (e.getActionCommand().equals("switchcon") && (!jftp.uiBlocked))
+        {
+            jftp.switchConnection();
+        }
+
     }
 
     public void startTransfer(String url, String localPath, Vector listeners,
