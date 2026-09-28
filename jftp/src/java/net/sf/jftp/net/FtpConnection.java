@@ -1622,7 +1622,10 @@ public class FtpConnection implements BasicConnection, FtpConstants
 					DataConnection.DFINISHED + ":" + fileCount, -1);
 
 			fireActionFinished(this);
-			fireDirectoryUpdate(this);
+
+			if(controlAlive){
+				fireDirectoryUpdate(this);
+			}
 		}
 		else
 		{
@@ -1813,12 +1816,17 @@ public class FtpConnection implements BasicConnection, FtpConstants
 				// command's reply isn't misread, especially on the retry path.
 				if(controlAlive && tmp.startsWith("1"))
 				{
-					getLine(POSITIVE);
+					if(getLine(POSITIVE) == null)   // server closed the control connection mid-transfer
+					{
+						controlAlive = false;
+					}
 				}
 
 	// =============================================== JFTP M1 =======================================================================
 				boolean controlLost = !controlAlive || (dcon.hasError() && dcon.getFailReason() == DataConnection.REASON_CONTROL_LOST);
 				if(controlLost) {
+					controlAlive = false; //Mark control connection dead
+					connected = false;
 					abortData();
 					fireConnectionFailed(this, "CONTROL_LOST");
 					return CONTROL_CONNECTION_LOST;

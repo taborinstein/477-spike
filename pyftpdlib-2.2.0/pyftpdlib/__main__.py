@@ -23,7 +23,7 @@ from .prefork import cpu_count
 from .utils import hilite
 from .utils import term_supports_colors
 
-from .fail import FailHandler, kill_active_upload
+from .fail import FailHandler, kill_active_upload, kill_active_control
 
 try:
     from .handlers import TLS_FTPHandler
@@ -36,12 +36,14 @@ DEFAULT_PORT = 2121
 # ============================= LISTENER FOR JFTP M1 =====================================================================================
 def _button_a_listener(server):
     import sys
-    print("[M1] kill listener running; type k + Enter", flush=True)
+    print("[M1] listener running: k + Enter = kill data, c + Enter = kill control", flush=True)
     for line in sys.stdin:
         cmd = line.strip().lower()
         print(f"[M1] got {cmd!r}", flush=True)
         if cmd in ("k", "kill"):
             server.ioloop.call_later(0, kill_active_upload)
+        elif cmd in ("c", "control"):
+            server.ioloop.call_later(0, kill_active_control)
 # =======================================================================================================================================
 
 class ColorHelpFormatter(argparse.HelpFormatter):

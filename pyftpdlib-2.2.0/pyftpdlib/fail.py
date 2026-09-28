@@ -3,6 +3,7 @@ import os
 import socket
 import struct
 import threading
+import time
 
 from .handlers import FTPHandler
 
@@ -43,6 +44,31 @@ def kill_active_upload():
             return True
     print("[M1] no in-progress upload found", flush=True)
     return False
+
+def kill_active_control():
+    for h in list_active_handlers():
+        dtp = h.data_channel
+        if dtp is not None and getattr(dtp, "receive", False) \
+                and not getattr(dtp, "transfer_finished", True):
+            h.close()      # runs _notify_data_channel_control_lost first
+            return True
+    print("[M1] no in-progress upload found", flush=True)
+    return False
+
+def _drain_then_close(sock, secs=5.0):
+    """Keep reading (and discarding) until the client closes its side or time out.
+    Keeps the connection open so pyftpdlib closing its own
+    handle doesn't trigger a race that would wipe out the frame."""
+    try:
+        sock.settimeout(secs)
+        deadline = time.monotonic() + secs
+        while time.monotonic() < deadline:
+            if not sock.recv(65536):
+                break          # client closed after reading the frame
+    except OSError:
+        pass
+    finally:
+        sock.close()
 
 #Class to actually handle failures in both lines
 class FailHandler(FTPHandler):
@@ -88,17 +114,15 @@ class FailHandler(FTPHandler):
         frame = MARK + struct.pack("!BQ", FRAME_CONTROL_LOST, int(committed))
 
         try:
-            raw = dtp.socket
-            dup = raw.dup()
-            try:
-                dup.setblocking(True)
-                dup.settimeout(2.0)
-                dup.sendall(frame)
-                dup.shutdown(socket.SHUT_WR)   # FIN: client reads frame, then EOF
-            finally:
-                dup.close()   # closes only the duplicate handle; the base class closes the real one
+            dup = dtp.socket.dup()
+            dup.setblocking(True)
+            dup.settimeout(2.0)
+            dup.sendall(frame)
+            dup.shutdown(socket.SHUT_WR)   # FIN after the frame
         except Exception as ex:
             self.log(f"DataFail notice failed: {ex}")
+            return
+        threading.Thread(target=_drain_then_close, args=(dup,), daemon=True).start() #Open new thread to drain the socket before closing
 
     def on_incomplete_file_received(self, file):
         """Keep the partial file so a later REST+STOR can resume the upload.

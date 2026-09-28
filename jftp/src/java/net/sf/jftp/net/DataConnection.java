@@ -113,7 +113,7 @@ public class DataConnection implements Runnable {
 
             //Check that the message uses the MARK specified earlier
             if (n == rdin.length && rdin[0] == MARK[0] && rdin[1] == MARK[1] && rdin[2] == MARK[2] && rdin[3] == MARK[3]){
-                failReason = rdin[4]; //set failReason to the type given in the message. May add other fail cases in later spikes, so it has a specific value
+                failReason = rdin[4] & 0xFF; //set failReason to the type given in the message. May add other fail cases in later spikes, so it has a specific value
                 long c = 0;
                 for(int i = 5; i < 13; i++){
                     c = (c << 8) | (rdin[i] & 0xFF);
@@ -508,6 +508,7 @@ public class DataConnection implements Runnable {
                         if (ok) {
                             try {
                                 int len = skiplen;
+                                InputStream rin = sock.getInputStream();   // M1: server -> client is idle during STOR
 
                                 while (true) {
                                     int read;
@@ -534,6 +535,14 @@ public class DataConnection implements Runnable {
 
                                     con.fireProgressUpdate(file, type, len);
 
+                                    // M1: anything arriving on the idle direction is a server notice
+                                    if (rin.available() > 0) {
+                                        debug("Server notice on data connection");
+                                        readReason();
+                                        ok = false;
+                                        break;
+                                    }
+
                                     if (time()) {
                                         // Log.debugSize(len, false, false, file);
                                     }
@@ -551,7 +560,9 @@ public class DataConnection implements Runnable {
                             } catch (IOException ex) {
                                 ok = false;
                                 debug("Error: Data connection closed.");
-                                readReason(); //M1 figure out what the failure was. Otherwise the same.
+                                if (!m1Fail) {          // M1: don't overwrite a reason already read from the frame
+                                    readReason();
+                                }
                                 con.fireProgressUpdate(file, FAILED, -1);
                                 ex.printStackTrace();
                             }
