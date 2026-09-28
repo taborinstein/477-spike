@@ -611,6 +611,8 @@ public class JFtp extends JPanel implements WindowListener, ComponentListener,
     		Settings.enableUploadResuming = true;
     		Settings.noUploadResumingQuestion = false;
 
+            Settings.noUploadResumingQuestion = true; //Don't want these for data retry loop
+
     		setSocksProxyOptions(Settings.getSocksProxyHost(),
     				Settings.getSocksProxyPort());
 

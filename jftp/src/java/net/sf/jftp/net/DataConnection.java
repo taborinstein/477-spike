@@ -85,8 +85,8 @@ public class DataConnection implements Runnable {
 
     //Match the codes defined in the server file
     private static final byte[] MARK = {'K', 'B', 'M', '1'};
-    public static final int REASON_CONTROL_LOST = 4;
-    public static final int REASON_DATA_ERROR = 5; //Also could be an enum if more reasons are added in later spikes
+    public static final int REASON_CONTROL_LOST = 1;
+    public static final int REASON_DATA_ERROR = 2; //Also could be an enum if more reasons are added in later spikes
 
     /**
      * Called from the PUT(upload) part of run() if it fails. During a file upload (initiated by STOR), the server -> client direction of
@@ -116,8 +116,9 @@ public class DataConnection implements Runnable {
                 failReason = rdin[4]; //set failReason to the type given in the message. May add other fail cases in later spikes, so it has a specific value
                 long c = 0;
                 for(int i = 5; i < 13; i++){
-                    c = c * 256 + (rdin[i]); //Calculate number of bytes server says were uploaded
+                    c = (c << 8) | (rdin[i] & 0xFF);
                 }
+                serverCommitted = c;
             } else {
                 failReason = REASON_DATA_ERROR; //No message, but timeout = data line failure
             }
@@ -127,6 +128,20 @@ public class DataConnection implements Runnable {
         } finally {
             m1Fail = true;
         }
+    }
+
+    private final java.util.concurrent.CountDownLatch goAhead = new java.util.concurrent.CountDownLatch(1);
+    private volatile boolean cancelled = false;
+
+    /** Called by FtpConnection once the server has sent 125/150 for STOR. */
+    public void startTransfer() {
+        goAhead.countDown();
+    }
+
+    /** Called by FtpConnection if STOR was rejected; releases the thread without sending data. */
+    public void cancelTransfer() {
+        cancelled = true;
+        goAhead.countDown();
     }
 
 // ============================================================================================================================================
@@ -465,6 +480,19 @@ public class DataConnection implements Runnable {
                             // fIn = new BufferedInputStream(new FileInputStream(file));
                         } catch (Exception ex) {
                             debug("Can't open inputfile: " + " (" + ex + ")");
+                            ok = false;
+                        }
+                    }
+
+                    if (ok) {
+                        // M1: don't send a byte until the server has accepted STOR
+                        try {
+                            if (!goAhead.await(30, java.util.concurrent.TimeUnit.SECONDS) || cancelled) {
+                                debug("Upload not started: STOR not accepted");
+                                ok = false;
+                            }
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
                             ok = false;
                         }
                     }

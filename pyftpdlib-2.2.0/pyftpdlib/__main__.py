@@ -36,9 +36,12 @@ DEFAULT_PORT = 2121
 # ============================= LISTENER FOR JFTP M1 =====================================================================================
 def _button_a_listener(server):
     import sys
+    print("[M1] kill listener running; type k + Enter", flush=True)
     for line in sys.stdin:
-        if line.strip().lower() in ("k", "kill"):
-            server.ioloop.call_later(0, kill_active_upload)   # onto ioloop thread
+        cmd = line.strip().lower()
+        print(f"[M1] got {cmd!r}", flush=True)
+        if cmd in ("k", "kill"):
+            server.ioloop.call_later(0, kill_active_upload)
 # =======================================================================================================================================
 
 class ColorHelpFormatter(argparse.HelpFormatter):

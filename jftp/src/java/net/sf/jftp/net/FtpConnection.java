@@ -1679,19 +1679,20 @@ public class FtpConnection implements BasicConnection, FtpConstants
 
 		String path = file;
 
+		//Calculate file path BEFORE doing the attempt loop
+		if(StringUtils.isRelative(file))
+		{
+			path = getLocalPath() + file;
+		}
+
+		file = StringUtils.getFile(file);
+
 // ==================================================== JFTP M1: Retry for data failure ====================================================
 		for(int attempt = 0; attempt < 3; attempt++) {
 
 			try
 			{
 				int p = 0;
-
-				if(StringUtils.isRelative(file))
-				{
-					path = getLocalPath() + file;
-				}
-
-				file = StringUtils.getFile(file);
 
 				//BufferedReader in = jcon.getReader();
 				boolean resume = false;
@@ -1789,14 +1790,17 @@ public class FtpConnection implements BasicConnection, FtpConstants
 					jcon.send(STOR + " " + file);
 				}
 
-				String tmp = getLine(POSITIVE);
+				// M1: wait for the preliminary reply (125/150), not the final 226
+				String tmp = getLine(new String[] { "1", POSITIVE });
 
-				if(!tmp.startsWith(POSITIVE) && !tmp.startsWith(PROCEED))
+				if(tmp == null || tmp.startsWith(NEGATIVE) || tmp.startsWith(NEGATIVE2))
 				{
+					dcon.cancelTransfer();
 					return TRANSFER_FAILED;
 				}
 
 				Log.debug(tmp);
+				dcon.startTransfer();   // now the data thread may write
 
 				// we need to block since some ftp-servers do not want the
 				// refresh command that dirpanel sends otherwise
@@ -1804,6 +1808,14 @@ public class FtpConnection implements BasicConnection, FtpConstants
 				{
 					pause(10);
 				}
+
+				// Consume the final reply (226 on success, 426 on abort) so the next
+				// command's reply isn't misread, especially on the retry path.
+				if(controlAlive && tmp.startsWith("1"))
+				{
+					getLine(POSITIVE);
+				}
+
 	// =============================================== JFTP M1 =======================================================================
 				boolean controlLost = !controlAlive || (dcon.hasError() && dcon.getFailReason() == DataConnection.REASON_CONTROL_LOST);
 				if(controlLost) {

@@ -29,13 +29,19 @@ def list_active_handlers():
 #Button hit, kill upload
 def kill_active_upload():
     """Button A entry point: find the handler with a current upload and close its data channel. Returns True if one was killed."""
-    for h in list_active_handlers():
+    handlers = list_active_handlers()
+    print(f"[M1] kill_active_upload called; {len(handlers)} registered handler(s)", flush=True)
+    for h in handlers:
         dtp = h.data_channel
+        print(f"[M1]   {h.remote_ip}:{h.remote_port} dtp={dtp!r} "
+              f"receive={getattr(dtp, 'receive', None)} "
+              f"finished={getattr(dtp, 'transfer_finished', None)}", flush=True)
         if dtp is not None \
                 and getattr(dtp, "receive", False) \
                 and not getattr(dtp, "transfer_finished", True):
             h.kill_data_channel()
             return True
+    print("[M1] no in-progress upload found", flush=True)
     return False
 
 #Class to actually handle failures in both lines
@@ -53,8 +59,10 @@ class FailHandler(FTPHandler):
 
     # Server-side kill command
     def kill_data_channel(self):
+        self.log("[M1] kill_data_channel called;")
         dtp = self.data_channel
         if dtp is None:
+            self.log("Cannot KILL data channel that does not exist")
             return False
         self.log("MANUAL KILL: closing data channel mid-transfer")
         # dtp.close() does three things:
@@ -62,6 +70,7 @@ class FailHandler(FTPHandler):
         #   - transfer_finished is still False - partial retained for REST/STOR resume
         #   - calls _on_dtp_close(), so self.data_channel = None, idle timer restart
         dtp.close()
+        self.respond("426 Connection closed; transfer aborted by server.")
         return True
 
     def _notify_data_channel_control_lost(self):
@@ -80,14 +89,14 @@ class FailHandler(FTPHandler):
 
         try:
             raw = dtp.socket
-            dup = socket.socket(raw.family, raw.type, raw.proto, fileno=os.dup(raw.fileno()))
+            dup = raw.dup()
             try:
                 dup.setblocking(True)
                 dup.settimeout(2.0)
                 dup.sendall(frame)
                 dup.shutdown(socket.SHUT_WR)   # FIN: client reads frame, then EOF
             finally:
-                dup.detach()   # The base class will close the underlying socket
+                dup.close()   # closes only the duplicate handle; the base class closes the real one
         except Exception as ex:
             self.log(f"DataFail notice failed: {ex}")
 
