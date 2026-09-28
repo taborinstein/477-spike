@@ -174,7 +174,7 @@ public class HostChooser extends HFrame implements ActionListener,
         
         root.add(new JLabel(" "),"wrap");       
         
-        root.add(dirBox, "wrap");                
+        root.add(dirBox, "wrap");
         root.add(lcwd);
         root.add(cwd, "wrap");
         
