@@ -2017,9 +2017,9 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	 */
 	public void disconnect()
 	{
+		connected = false;
 		jcon.send(QUIT);
 		getLine(POSITIVE);//FTP221_SERVICE_CLOSING);
-		connected = false;
 	}
 
 	/**
@@ -2754,10 +2754,10 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	/**
 	 * Do nothing, but flush buffers
 	 */
-	public void noop()
+	public String noop()
 	{
 		jcon.send(NOOP);
-		getLine(POSITIVE);//FTP200_OK);
+		return getLine(POSITIVE);//FTP200_OK);
 	}
 
 	/**

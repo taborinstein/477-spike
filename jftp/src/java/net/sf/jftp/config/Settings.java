@@ -68,7 +68,7 @@ public class Settings
     public static boolean enableWebDav = false;
     
     public static boolean ftpKeepAlive = true;
-    public static int ftpKeepAliveInterval = 29000;
+    public static int ftpKeepAliveInterval = 15000; //29000;
 
     
     // 1: manual, 2: onclick, 0: off
@@ -165,7 +165,8 @@ public class Settings
     public static String hostImage;   
     public static String closeImage;
     public static String infoImage;  
-    public static String listImage;  
+    public static String listImage;
+    public static String switchImage;
  
     public static String rmdirImage;  
     public static String mkdirImage;   
@@ -597,6 +598,7 @@ public class Settings
         	closeImage = "images/org/javalobby/icons/20x20/Error.gif";
         	infoImage = "images/org/javalobby/icons/20x20/Inform.gif";
         	listImage = "images/org/javalobby/icons/20x20/List.gif";
+        	switchImage = "images/org/javalobby/icons/20x20/Switch.gif";
         	deleteImage = "images/org/javalobby/icons/16x16/DeleteDocument.gif";
         	deleteImage2 = "images/org/javalobby/icons/16x16/DeleteDocument.gif";
         	rmdirImage = "images/org/javalobby/icons/16x16/DeleteFolder.gif";
@@ -644,7 +646,8 @@ public class Settings
         	hostImage = "images/current/server_add.png";   
         	closeImage = "images/current/cancel.png";
         	infoImage = "images/current/information.png";  
-        	listImage = "images/current/page_white_text.png";  
+        	listImage = "images/current/page_white_text.png";
+        	switchImage = "images/current/switch.gif";
 
         	rmdirImage = "images/current/folder_delete.png";  
         	mkdirImage = "images/current/folder_add.png";   

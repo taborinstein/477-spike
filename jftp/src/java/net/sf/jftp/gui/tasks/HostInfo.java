@@ -26,6 +26,7 @@ public class HostInfo
     public String username;
     public String password;
     public String port;
+    public String port2;
 
     // local path + filename
     // public String local;

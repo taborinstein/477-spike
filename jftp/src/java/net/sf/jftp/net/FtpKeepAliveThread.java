@@ -1,5 +1,8 @@
 package net.sf.jftp.net;
 
+import javax.swing.SwingUtilities;
+
+import net.sf.jftp.JFtp;
 import net.sf.jftp.config.Settings;
 
 public class FtpKeepAliveThread implements Runnable {
@@ -18,8 +21,24 @@ public class FtpKeepAliveThread implements Runnable {
 		while(conn.isConnected()) {
 			try {
 				Thread.sleep(Settings.ftpKeepAliveInterval);
-				
-				conn.noop();
+
+                String resp;
+				// Check if the connection is still alive
+				if (conn.isConnected()) {
+					resp = conn.noop();
+				} else {
+                    break;
+                }
+                
+                if (resp == null || !resp.startsWith("200")) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (!conn.isConnected()) {
+                            return;
+                        }
+                        JFtp.switchConnection();
+                    });
+                    break;
+                }
 			}
 			catch(Exception ex) {
 				ex.printStackTrace();

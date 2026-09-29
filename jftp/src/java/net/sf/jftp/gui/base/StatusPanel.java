@@ -59,6 +59,8 @@ public class StatusPanel extends HPanel implements ActionListener
                                                       this);
     public HImageButton close = new HImageButton(Settings.closeImage, "close",
                                                  "Close active tab...", this);
+    public HImageButton switchcon = new HImageButton(Settings.switchImage, "switchcon",
+                                                 "Switch to backup connection...", this);
     private HImageButton go = new HImageButton(Settings.refreshImage, "go",
                                                "Download URL now...", this);
     private JTextField address = new JTextField("http://www.xkcd.com", 30);
@@ -106,6 +108,12 @@ public class StatusPanel extends HPanel implements ActionListener
         webdavcon.setSize(24, 24);
         webdavcon.setToolTipText("New WebDAV Connection...");
         bar.add(new JLabel("   "));
+
+        // add switch conn button
+        bar.add(switchcon);
+        switchcon.setSize(24, 24);
+        switchcon.setToolTipText("Switch to backup connection...");
+        bar.add(new JLabel(" "));
 
         bar.add(close);
         close.setSize(24, 24);
@@ -210,6 +218,12 @@ public class StatusPanel extends HPanel implements ActionListener
             //hc.setModal(true);
             hc.update();
         }
+        // switch connection action handling
+        else if (e.getActionCommand().equals("switchcon") && (!jftp.uiBlocked))
+        {
+            JFtp.switchConnection();
+        }
+
     }
 
     public void startTransfer(String url, String localPath, Vector listeners,

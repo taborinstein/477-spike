@@ -67,13 +67,14 @@ public class HostChooser extends HFrame implements ActionListener,
     //public static HTextField pass = new HTextField("Password:","none@nowhere.no");
     public HPasswordField pass = new HPasswordField("Password:",
                                                     "none@nowhere.no");
-    public HTextField port = new HTextField("Port:    ", "21");
+    public HTextField port = new HTextField("Port:    ", "12345");
+    public HTextField port2 = new HTextField("Backup Port:    ", "23456");
     public HTextField cwd = new HTextField("Remote:  ", Settings.defaultDir);
     public HTextField lcwd = new HTextField("Local:   ", Settings.defaultWorkDir);
     public HTextField dl = new HTextField("Max. connections:    ", "3");
     public HTextField crlf = new HTextField("Override server newline:    ", "<default>");
     private JCheckBox anonBox = new JCheckBox("Use anonymous login", false);
-    private JCheckBox listBox = new JCheckBox("LIST compatibility mode", false);
+    private JCheckBox listBox = new JCheckBox("LIST compatibility mode", true);
     private JCheckBox dirBox = new JCheckBox("Use default directories",
                                              Settings.getUseDefaultDir());
     private JCheckBox modeBox = new JCheckBox("Use active Ftp (no need to)",
@@ -119,8 +120,8 @@ public class HostChooser extends HFrame implements ActionListener,
         pass.text.setEnabled(true);
 
         try {
-        	LoadSet l = new LoadSet();
-        	String[] login = l.loadSet(Settings.login_def);
+//        	LoadSet l = new LoadSet();
+        	String[] login = LoadSet.loadSet(Settings.login_def);
 
         	if((login != null) && (login[0] != null))
         	{
@@ -164,14 +165,16 @@ public class HostChooser extends HFrame implements ActionListener,
         root.setLayout(new MigLayout());
         
         root.add(host);
-        root.add(port, "wrap");
+        root.add(new JLabel(" "),"wrap");
+        root.add(port);
+        root.add(port2, "wrap");
         root.add(user);
         root.add(pass, "wrap");
         root.add(anonBox, "wrap");
         
         root.add(new JLabel(" "),"wrap");       
         
-        root.add(dirBox, "wrap");                
+        root.add(dirBox, "wrap");
         root.add(lcwd);
         root.add(cwd, "wrap");
         
@@ -296,6 +299,7 @@ public class HostChooser extends HFrame implements ActionListener,
             String utmp = StringUtils.cut(user.getText(), " ");
             String ptmp = StringUtils.cut(pass.getText(), " ");
             String potmp = StringUtils.cut(port.getText(), " ");
+            String potmp2 = StringUtils.cut(port2.getText(), " ");
 
             Settings.setProperty("jftp.ftpPasvMode", !modeBox.isSelected());
             Settings.setProperty("jftp.enableMultiThreading",
@@ -317,6 +321,7 @@ public class HostChooser extends HFrame implements ActionListener,
             JFtp.hostinfo.password = ptmp;
             JFtp.hostinfo.port = potmp;
             JFtp.hostinfo.type = "ftp";
+            JFtp.hostinfo.port2 = potmp2;
 
             boolean pasv = Settings.getFtpPasvMode();
             boolean threads = Settings.getEnableMultiThreading();
