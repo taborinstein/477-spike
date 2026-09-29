@@ -2017,9 +2017,9 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	 */
 	public void disconnect()
 	{
+		connected = false;
 		jcon.send(QUIT);
 		getLine(POSITIVE);//FTP221_SERVICE_CLOSING);
-		connected = false;
 	}
 
 	/**

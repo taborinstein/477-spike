@@ -21,10 +21,20 @@ public class FtpKeepAliveThread implements Runnable {
 		while(conn.isConnected()) {
 			try {
 				Thread.sleep(Settings.ftpKeepAliveInterval);
-				
-				String resp = conn.noop();
+
+                String resp;
+				// Check if the connection is still alive
+				if (conn.isConnected()) {
+					resp = conn.noop();
+				} else {
+                    break;
+                }
+                
                 if (resp == null || !resp.startsWith("200")) {
                     SwingUtilities.invokeLater(() -> {
+                        if (!conn.isConnected()) {
+                            return;
+                        }
                         JFtp.switchConnection();
                     });
                     break;
