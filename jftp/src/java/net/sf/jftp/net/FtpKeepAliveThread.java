@@ -25,7 +25,7 @@ public class FtpKeepAliveThread implements Runnable {
 				String resp = conn.noop();
                 if (resp == null || !resp.startsWith("200")) {
                     SwingUtilities.invokeLater(() -> {
-                        JFtp.statusP.jftp.switchConnection();
+                        JFtp.switchConnection();
                     });
                     break;
                 }

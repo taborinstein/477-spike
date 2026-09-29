@@ -469,7 +469,7 @@ public class JFtp extends JPanel implements WindowListener, ComponentListener,
         }
     }
 
-    public void switchConnection() {
+    public static void switchConnection() {
         BasicConnection con = remoteDir.getCon();
         if((con == null) || !con.isConnected()) {
             Log.out("There is no alive connection, cannot switch connection.");

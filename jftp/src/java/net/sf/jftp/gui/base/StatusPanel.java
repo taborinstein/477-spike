@@ -221,7 +221,7 @@ public class StatusPanel extends HPanel implements ActionListener
         // switch connection action handling
         else if (e.getActionCommand().equals("switchcon") && (!jftp.uiBlocked))
         {
-            jftp.switchConnection();
+            JFtp.switchConnection();
         }
 
     }
