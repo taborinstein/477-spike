@@ -348,15 +348,15 @@ def parse_args(args=None):
 def restart_0(server): # done
     for client in server.clients:
         client.reset_data_channel()
-def restart_1(server):
+def restart_1(server): # done
     for client in server.clients:
         client.restart_data_connection()
 def restart_2(server):
-    # restart the ioloop
-    server.ioloop.close()
+    old_loop = server.ioloop
+    old_loop.unregister(server._fileno)  # Keep the listening socket open.
+    old_loop.close()                     # Closes the remaining channels.
     server.ioloop = IOLoop()
     server.add_channel()
-
 def restart_3(server): # done
     # reset the entire process by using the exec syscall
     args = sys.argv
@@ -455,10 +455,7 @@ def main(args=None):
 
     try:
         threading.Thread(target=input_handler, args=(server,), daemon=True).start()
-        # thread = threading.Thread(target=lambda: 
         server.serve_forever(timeout=timeout, worker_processes=ncpus)
-        # )
-        # thread.start()
     finally:
         server.close_all()
 
