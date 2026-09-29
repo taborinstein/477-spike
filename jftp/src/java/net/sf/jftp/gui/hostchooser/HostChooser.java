@@ -74,7 +74,7 @@ public class HostChooser extends HFrame implements ActionListener,
     public HTextField dl = new HTextField("Max. connections:    ", "3");
     public HTextField crlf = new HTextField("Override server newline:    ", "<default>");
     private JCheckBox anonBox = new JCheckBox("Use anonymous login", false);
-    private JCheckBox listBox = new JCheckBox("LIST compatibility mode", false);
+    private JCheckBox listBox = new JCheckBox("LIST compatibility mode", true);
     private JCheckBox dirBox = new JCheckBox("Use default directories",
                                              Settings.getUseDefaultDir());
     private JCheckBox modeBox = new JCheckBox("Use active Ftp (no need to)",
