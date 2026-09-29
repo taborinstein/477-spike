@@ -23,6 +23,7 @@ from .log import config_logging
 from .prefork import cpu_count
 from .utils import hilite
 from .utils import term_supports_colors
+from pyftpdlib.ioloop import IOLoop
 
 try:
     from .handlers import TLS_FTPHandler
@@ -353,6 +354,9 @@ def restart_1(server):
 def restart_2(server):
     # restart the ioloop
     server.ioloop.close()
+    server.ioloop = IOLoop()
+    server.add_channel()
+
 def restart_3(server): # done
     # reset the entire process by using the exec syscall
     args = sys.argv
@@ -367,13 +371,13 @@ def input_handler(server):
             "restart.0": lambda: restart_0(server),
             "restart.1": lambda: restart_1(server),
             "restart.2": lambda: restart_2(server),
-            "restart.3": lambda: restart_3(server)
-                
+            "restart.3": lambda: restart_3(server)       
         }
         if not cmd in cmds:
             print(f"Command not found: {cmd}")
         else:
             cmds[cmd]()
+            print(f"Successfully ran command: {cmd}")
 
 
 def main(args=None):
