@@ -1253,14 +1253,16 @@ class FTPHandler(AsyncChat):
     def restart_data_connection(self):
         # level 1 reset - reset the data channel and the passive dtp
         self._shutdown_connecting_dtp()
+        if self.data_channel is not None:
+            self.data_channel._resp = None
+            self.data_channel.close()
+        if self._in_dtp_queue is not None:
+            item = self._in_dtp_queue[0]
+            if item is not None and not item.closed:
+                item.close()
         if self._dtp_acceptor:
             self._dtp_acceptor.close()
             self._dtp_acceptor = None
-        # if self.data_channel:
-        #     self._quit_pending = True
-        #     # self.del_channel()
-        # else:
-        #     self.close_when_done()
         self._make_epasv()
         self.respond("425 Connection aborted, restarting connection")
     
