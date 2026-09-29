@@ -68,7 +68,7 @@ public class Settings
     public static boolean enableWebDav = false;
     
     public static boolean ftpKeepAlive = true;
-    public static int ftpKeepAliveInterval = 10000; //29000;
+    public static int ftpKeepAliveInterval = 15000; //29000;
 
     
     // 1: manual, 2: onclick, 0: off
