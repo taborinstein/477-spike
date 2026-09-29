@@ -91,6 +91,7 @@ import net.sf.jftp.net.ConnectionHandler;
 import net.sf.jftp.net.ConnectionListener;
 import net.sf.jftp.net.FilesystemConnection;
 import net.sf.jftp.net.FtpConnection;
+import net.sf.jftp.net.wrappers.StartConnection;
 import net.sf.jftp.system.LocalIO;
 import net.sf.jftp.system.UpdateDaemon;
 import net.sf.jftp.system.logging.Log;
@@ -466,6 +467,36 @@ public class JFtp extends JPanel implements WindowListener, ComponentListener,
         {
             mainFrame.dispose();
         }
+    }
+
+    public void switchConnection() {
+        BasicConnection con = remoteDir.getCon();
+        if((con == null) || !con.isConnected()) {
+            Log.out("There is no alive connection, cannot switch connection.");
+            return;
+        } else if (hostinfo.port2 == null || hostinfo.port2.equals("")) {
+            // no backup port
+            Log.out("No backup port specified, cannot switch connection.");
+            return;
+        }
+
+        // disconnect from current connection
+        safeDisconnect();
+
+        // try to connect to backup server
+        int response = StartConnection.startFtpCon(hostinfo.hostname, hostinfo.username, hostinfo.password, Integer.parseInt(hostinfo.port2), Settings.defaultDir, false);
+
+        // check that connection succeeded
+        if (response == FtpConnection.LOGIN_OK) {
+            // swap port and port2
+            String temp = hostinfo.port;
+            hostinfo.port = hostinfo.port2;
+            hostinfo.port2 = temp;
+        } else {
+            // connection failed, go back to original port
+            response = StartConnection.startFtpCon(hostinfo.hostname, hostinfo.username, hostinfo.password, Integer.parseInt(hostinfo.port), Settings.defaultDir, false);
+        }
+
     }
 
     public static void safeDisconnect()

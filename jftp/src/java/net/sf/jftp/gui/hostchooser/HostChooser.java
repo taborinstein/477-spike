@@ -299,6 +299,7 @@ public class HostChooser extends HFrame implements ActionListener,
             String utmp = StringUtils.cut(user.getText(), " ");
             String ptmp = StringUtils.cut(pass.getText(), " ");
             String potmp = StringUtils.cut(port.getText(), " ");
+            String potmp2 = StringUtils.cut(port2.getText(), " ");
 
             Settings.setProperty("jftp.ftpPasvMode", !modeBox.isSelected());
             Settings.setProperty("jftp.enableMultiThreading",
@@ -320,6 +321,7 @@ public class HostChooser extends HFrame implements ActionListener,
             JFtp.hostinfo.password = ptmp;
             JFtp.hostinfo.port = potmp;
             JFtp.hostinfo.type = "ftp";
+            JFtp.hostinfo.port2 = potmp2;
 
             boolean pasv = Settings.getFtpPasvMode();
             boolean threads = Settings.getEnableMultiThreading();
