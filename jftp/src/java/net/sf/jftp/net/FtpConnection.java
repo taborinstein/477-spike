@@ -2754,10 +2754,10 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	/**
 	 * Do nothing, but flush buffers
 	 */
-	public void noop()
+	public String noop()
 	{
 		jcon.send(NOOP);
-		getLine(POSITIVE);//FTP200_OK);
+		return getLine(POSITIVE);//FTP200_OK);
 	}
 
 	/**
