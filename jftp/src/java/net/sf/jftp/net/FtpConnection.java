@@ -138,6 +138,44 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	public Vector<String> currentSizes = new Vector<String>();
 	public Vector<String> currentPerms = new Vector<String>();
 
+// ================================================== JFTP M1 ========================================================================
+	public final int CONTROL_CONNECTION_LOST = 1;
+	public final int DATA_CONNECTION_LOST = 2;
+
+	public void abortData(){
+		try {
+			if (dcon != null && dcon.sock != null && !dcon.sock.isClosed()){
+				dcon.getCon().work = false;
+				dcon.sock.close();
+			}
+		} catch(Exception ex) {
+			Log.debug("abortData: " + ex);
+		}
+	}
+
+	private boolean controlAlive = true;
+
+	public boolean isControlAlive() {
+		return controlAlive;
+	}
+
+	/**
+	 * Method that initiates the control connection kill sequence
+	 */
+	public void killControlConnection() {
+		Log.debug("MANUAL KILL: dropping control connection.");
+		controlAlive = false;
+		connected = false;
+		try {
+			if (jcon != null) {
+				jcon.close();
+			}
+		} catch (Exception ex) {
+			Log.debug("killControlConnection: " + ex);
+		}
+	}
+// ===========================================================================================================================================
+
 	/**
 	 * Create an instance with a given host
 	 *
@@ -1584,7 +1622,10 @@ public class FtpConnection implements BasicConnection, FtpConstants
 					DataConnection.DFINISHED + ":" + fileCount, -1);
 
 			fireActionFinished(this);
-			fireDirectoryUpdate(this);
+
+			if(controlAlive){
+				fireDirectoryUpdate(this);
+			}
 		}
 		else
 		{
@@ -1641,138 +1682,184 @@ public class FtpConnection implements BasicConnection, FtpConstants
 
 		String path = file;
 
-		try
+		//Calculate file path BEFORE doing the attempt loop
+		if(StringUtils.isRelative(file))
 		{
-			int p = 0;
+			path = getLocalPath() + file;
+		}
 
-			if(StringUtils.isRelative(file))
+		file = StringUtils.getFile(file);
+
+// ==================================================== JFTP M1: Retry for data failure ====================================================
+		for(int attempt = 0; attempt < 3; attempt++) {
+
+			try
 			{
-				path = getLocalPath() + file;
-			}
+				int p = 0;
 
-			file = StringUtils.getFile(file);
+				//BufferedReader in = jcon.getReader();
+				boolean resume = false;
+				String size = "0";
 
-			//BufferedReader in = jcon.getReader();
-			boolean resume = false;
-			String size = "0";
-
-			if(Settings.enableUploadResuming && (in == null))
-			{
-				list();
-
-				String[] ls = sortLs();
-				String[] sizes = sortSize();
-
-				if((ls == null) || (sizes == null))
+				if(Settings.enableUploadResuming && (in == null))
 				{
-					Log.out(">>> ls out of sync (skipping resume check)");
+					list();
+
+					String[] ls = sortLs();
+					String[] sizes = sortSize();
+
+					if((ls == null) || (sizes == null))
+					{
+						Log.out(">>> ls out of sync (skipping resume check)");
+					}
+					else
+					{
+						for(int i = 0; i < ls.length; i++)
+						{
+							//Log.out(ls[i] + ":" + sizes[i]);
+							if(realName != null)
+							{
+								if(ls[i].equals(realName))
+								{
+									resume = true;
+									size = sizes[i];
+
+									break;
+								}
+							}
+							else
+							{
+								if(ls[i].equals(file))
+								{
+									resume = true;
+									size = sizes[i];
+								}
+							}
+						}
+
+						File f = new File(path);
+
+						if(f.exists() && (f.length() <= Integer.parseInt(size)))
+						{
+							Log.out("skipping resuming, file is <= filelength");
+							resume = false;
+						}
+						else if(f.exists() && Integer.parseInt(size) > 0)
+						{
+							if(!Settings.noUploadResumingQuestion) {
+								if(JOptionPane.showConfirmDialog(new JLabel(), "A file smaller than the one to be uploaded already exists on the server,\n do you want to resume the upload?", "Resume upload?", JOptionPane.YES_NO_OPTION)
+										!= JOptionPane.OK_OPTION) {
+									resume = false;
+								}
+							}
+							Log.out("resume: " + resume + ", size: " + size);
+						}
+						else {
+							Log.out("resume: " + resume + ", size: " + size);
+						}
+					}
+				}
+
+				modeStream();
+
+				//binary();
+				p = negotiatePort();
+
+				if(resume && Settings.enableUploadResuming)
+				{
+					jcon.send(REST + " " + size);
+
+					if(getLine(PROCEED) == null)
+					{
+						resume = false;
+					}
+				}
+
+				dcon = new DataConnection(this, p, host, path, dataType, resume,
+						Integer.parseInt(size), in); //, new Updater());
+
+				while(!dcon.isThere())
+				{
+					pause(10);
+				}
+
+				//System.out.println(path + " : " + file);
+				if(realName != null)
+				{
+					jcon.send(STOR + " " + realName);
 				}
 				else
 				{
-					for(int i = 0; i < ls.length; i++)
-					{
-						//Log.out(ls[i] + ":" + sizes[i]);
-						if(realName != null)
-						{
-							if(ls[i].equals(realName))
-							{
-								resume = true;
-								size = sizes[i];
-
-								break;
-							}
-						}
-						else
-						{
-							if(ls[i].equals(file))
-							{
-								resume = true;
-								size = sizes[i];
-							}
-						}
-					}
-
-					File f = new File(path);
-
-					if(f.exists() && (f.length() <= Integer.parseInt(size)))
-					{
-						Log.out("skipping resuming, file is <= filelength");
-						resume = false;
-					}
-					else if(f.exists() && Integer.parseInt(size) > 0)
-					{
-						if(!Settings.noUploadResumingQuestion) {
-							if(JOptionPane.showConfirmDialog(new JLabel(), "A file smaller than the one to be uploaded already exists on the server,\n do you want to resume the upload?", "Resume upload?", JOptionPane.YES_NO_OPTION)
-									!= JOptionPane.OK_OPTION) {
-								resume = false;
-							}
-						}
-						Log.out("resume: " + resume + ", size: " + size);
-					}
-					else {
-						Log.out("resume: " + resume + ", size: " + size);
-					}
+					jcon.send(STOR + " " + file);
 				}
-			}
 
-			modeStream();
+				// M1: wait for the preliminary reply (125/150), not the final 226
+				String tmp = getLine(new String[] { "1", POSITIVE });
 
-			//binary();
-			p = negotiatePort();
-
-			if(resume && Settings.enableUploadResuming)
-			{
-				jcon.send(REST + " " + size);
-
-				if(getLine(PROCEED) == null)
+				if(tmp == null || tmp.startsWith(NEGATIVE) || tmp.startsWith(NEGATIVE2))
 				{
-					resume = false;
+					dcon.cancelTransfer();
+					return TRANSFER_FAILED;
 				}
+
+				Log.debug(tmp);
+				dcon.startTransfer();   // now the data thread may write
+
+				// we need to block since some ftp-servers do not want the
+				// refresh command that dirpanel sends otherwise
+				while(!dcon.finished)
+				{
+					pause(10);
+				}
+
+				// Consume the final reply (226 on success, 426 on abort) so the next
+				// command's reply isn't misread, especially on the retry path.
+				if(controlAlive && tmp.startsWith("1"))
+				{
+					if(getLine(POSITIVE) == null)   // server closed the control connection mid-transfer
+					{
+						controlAlive = false;
+					}
+				}
+
+	// =============================================== JFTP M1 =======================================================================
+				boolean controlLost = !controlAlive || (dcon.hasError() && dcon.getFailReason() == DataConnection.REASON_CONTROL_LOST);
+				if(controlLost) {
+					controlAlive = false; //Mark control connection dead
+					connected = false;
+					abortData();
+					fireConnectionFailed(this, "CONTROL_LOST");
+					return CONTROL_CONNECTION_LOST;
+				}
+	
+				if(dcon.hasError()) {
+					abortData();
+					if(dcon.getFailReason() == DataConnection.REASON_CONTROL_LOST) {
+						fireConnectionFailed(this, "CONTROL_LOST");
+						return CONTROL_CONNECTION_LOST;
+					} else { //data line failure
+						if(in != null) {
+							return TRANSFER_FAILED;
+						}
+						Log.out("Data connection lost, retrying.");
+						continue;
+					}
+				}
+				return TRANSFER_SUCCESSFUL;
+	// ===================================================================================================================================
 			}
-
-			dcon = new DataConnection(this, p, host, path, dataType, resume,
-					Integer.parseInt(size), in); //, new Updater());
-
-			while(!dcon.isThere())
+			catch(Exception ex)
 			{
-				pause(10);
-			}
+				ex.printStackTrace();
+				Log.debug(ex.toString() + " @FtpConnection::upload");
 
-			//System.out.println(path + " : " + file);
-			if(realName != null)
-			{
-				jcon.send(STOR + " " + realName);
-			}
-			else
-			{
-				jcon.send(STOR + " " + file);
-			}
-
-			String tmp = getLine(POSITIVE);
-
-			if(!tmp.startsWith(POSITIVE) && !tmp.startsWith(PROCEED))
-			{
 				return TRANSFER_FAILED;
 			}
-
-			Log.debug(tmp);
-
-			// we need to block since some ftp-servers do not want the
-			// refresh command that dirpanel sends otherwise
-			while(!dcon.finished)
-			{
-				pause(10);
-			}
-		}
-		catch(Exception ex)
-		{
-			ex.printStackTrace();
-			Log.debug(ex.toString() + " @FtpConnection::upload");
-
-			return TRANSFER_FAILED;
 		}
 
-		return TRANSFER_SUCCESSFUL;
+		//Final timeout indicates data line fully died
+		fireConnectionFailed(this, "DATA_CONNECTION_LOST");
+		return TRANSFER_FAILED;
 	}
 
 	private int uploadDir(String dir)
