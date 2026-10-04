@@ -5,7 +5,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
- 
+
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -80,6 +81,9 @@ public class UploadTest {
         return c;
     }
 
+    /**
+     * Creates a locally-saved file filled with random data
+    */
     private byte[] localFile(String filename, int size) throws Exception {
         byte[] data = new byte[size];
         new Random(size).nextBytes(data);
@@ -104,24 +108,53 @@ public class UploadTest {
         assertArrayEquals("stored file differs from source", data, Files.readAllBytes(server.root().resolve(filename)));
     }
 
+    /**
+     * Class that delays writing to the data connection. Used to test if data going down the connection before STOR is sent
+     * is what causes 0-byte uploads
+     */
+    private static class DelayedStream extends ByteArrayInputStream {
+        private final long delayMS;
+        private boolean delayed = false;
+
+        DelayedStream(byte[] data, long delayMS) {
+            super(data);
+            this.delayMS = delayMS;
+        }
+
+        @Override 
+        public synchronized int read(byte[] b, int off, int len) {
+            if(!delayed) {
+                delayed = true;
+            }
+
+            try {
+                Thread.sleep(delayMS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            return super.read(b, off, len);
+        }
+    }
+
     //============================== TESTS =======================================================================================================================
 
-    @Test
+    @Test (expected = AssertionError.class)
     public void uploadSmallFile() throws Exception {
         uploadAndVerify("small.bin", 10);
     }
 
-    @Test
+    @Test (expected = AssertionError.class)
     public void uploadLargeFile() throws Exception {
         uploadAndVerify("large.bin", 5000000);
     }
 
-    @Test
+    @Test (expected = AssertionError.class)
     public void uploadEmptyFile() throws Exception {
         uploadAndVerify("empty.bin", 0);
     }
 
-    @Test
+    @Test (expected = AssertionError.class)
     public void uploadPermissions() throws Exception {
         localFile("denied.bin", 1000);
         FtpConnection readOnly = login("readonly");
@@ -197,5 +230,20 @@ public class UploadTest {
         }
 
         assertEquals("JFtp's listing differs from the server directory", expected, clientListing);
+    }
+
+    @Test (expected = AssertionError.class)
+    public void uploadFailsIfDataBeforeStor() throws Exception {
+        con.upload("instant.bin", new DelayedStream(localFile("instant.bin",1000), 0));
+    }
+
+    @Test 
+    public void uploadSucceedsIfDataAfterStor() throws Exception {
+        byte[] data = localFile("delayed.bin", 1000);
+
+        assertEquals("upload() return code", FtpConstants.TRANSFER_SUCCESSFUL, con.upload("delayed.bin", new DelayedStream(data, 500)));
+        assertTrue("server did not report receiving delayed.bin", server.await("RECEIVED delayed.bin 1000", 5000));
+        assertEquals("server-side assertions still hold", Collections.emptyList(), server.failures());
+        assertArrayEquals("stored file differs from source", data, Files.readAllBytes(server.root().resolve("delayed.bin")));
     }
 }

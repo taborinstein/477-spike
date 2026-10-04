@@ -47,14 +47,13 @@ class TestFTPHandler(FTPHandler):
         self.check(dtp.transfer_finished, f"{filename} : transfer finished")
 
         #ASSERT: Check the file is in the test directory, which is the correct directory for all tests in M2
-        self.check(os.path.realpath(filename).startswith(self.root + os.sep), f"{filename} : stored inside test directory")
+        self.check(os.path.realpath(file).startswith(self.root + os.sep), f"{filename} : stored inside test directory")
 
         #ASSERT: Check the file exists on the disk
-        self.check(os.path.isfile(filename), f"{filename} : exists on disk")
+        self.check(os.path.isfile(file), f"{filename} : exists on disk")
 
-        #ASSERT: If it is an ASCII file, check that it is the right size
-        if self.current_type == "i":
-            self.check(os.path.getsize(filename) == received, f"{filename} : size on disk equals bytes received")
+        #ASSERT: Check that the file is the right size (DO THIS FOR EVERY FILE TYPE YOU DUMMY)
+        self.check(os.path.getsize(file) == received, f"{filename} : size on disk equals bytes received")
 
         report(f"RECEIVED {filename} {received}")
 
@@ -62,7 +61,6 @@ class TestFTPHandler(FTPHandler):
     def on_incomplete_file_received(self, file):
         dtp = self.data_channel
         filename = os.path.basename(file)
-        received = dtp.get_transmitted_bytes()
 
         #ASSERT: The transfer is marked as not finished
         self.check(not dtp.transfer_finished, f"{filename} : transfer marked incomplete")
@@ -79,7 +77,7 @@ def main():
 
         TestFTPHandler.authorizer = authorizer
         TestFTPHandler.root = root
-        server = FTPServer(("127.0.0.1", 12346), TestFTPHandler)
+        server = FTPServer(("127.0.0.1", 0), TestFTPHandler)
         stop_file = os.path.join(root, ".stop")
 
         report(f"ROOT {root}")
@@ -87,7 +85,7 @@ def main():
 
         try:
             while not os.path.exists(stop_file):
-                server.ioloop.loop(timeout=FTPHandler.timeout, blocking=False)
+                server.ioloop.loop(timeout=0.2, blocking=False)
         finally:
             server.close_all()
 
