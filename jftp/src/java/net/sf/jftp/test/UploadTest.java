@@ -9,8 +9,10 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Random;
- 
+import java.util.TreeMap;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -135,5 +137,37 @@ public class UploadTest {
     @Test (expected = AssertionError.class)
     public void missingLocalFile() {
         con.upload("does-not-exist.bin");
+    }
+
+    @Test
+    public void listingMatchesDirectory() throws Exception {
+        //Put some files onto the disk directly without using JFTP to do so
+        Files.write(server.root().resolve("report.txt"), new byte[1234]);
+        Files.write(server.root().resolve("my notes.txt"), new byte[7]);
+        Files.createDirectories(server.root().resolve("photos"));
+
+        //Check what is really in the server directory
+        Map<String, String> expected = new TreeMap<String, String>();
+        for (File f : server.root().toFile().listFiles()) {
+            expected.put(f.isDirectory() ? f.getName() + "/" : f.getName(),
+                        f.isDirectory() ? "dir" : String.valueOf(f.length()));
+        }
+
+        //Check what JFTP says is there
+        //Force LIST Compatibility mode here since that's not what's being tested
+        FtpConnection.LIST = "LIST";
+        con.list();
+        String[] names = con.sortLs();
+        String[] sizes = con.sortSize();
+
+        assertEquals("names and sizes are out of step", names.length, sizes.length);
+
+        //Make a map of what JFTP says is there to compare against the expected
+        Map<String, String> clientListing = new TreeMap<String, String>();
+        for (int i = 0; i < names.length; i++) {
+            clientListing.put(names[i], names[i].endsWith("/") ? "dir" : sizes[i]);
+        }
+
+        assertEquals("JFtp's listing differs from the server directory", expected, clientListing);
     }
 }
