@@ -10,9 +10,9 @@
 import os
 import tempfile
 
-from authorizers import DummyAuthorizer
-from handlers import FTPHandler
-from servers import FTPServer
+from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import FTPHandler
+from pyftpdlib.servers import FTPServer
 
 # Print a report to stdout
 def report(line):
@@ -73,7 +73,7 @@ def main():
     #Set up temporary test directory
     with tempfile.TemporaryDirectory(prefix="JFTP-M2-test-") as root:
         root = os.path.realpath(root)
-        authorizer = DummyAuthorizer
+        authorizer = DummyAuthorizer()
         authorizer.add_user("test", "test", root, perm="elradfmw")
         authorizer.add_user("reader", "reader", root, perm="elr")
 
