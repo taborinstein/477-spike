@@ -31,6 +31,12 @@ class TestFTPHandler(FTPHandler):
         except AssertionError:
             report(f"FAIL {message}")
 
+    #Assert that the STOR command is being handled as it should (mimics the test added in FTPConnection)
+    def ftp_STOR(self, file, mode="w"):
+        pending = self._dtp_acceptor is not None or self._dtp_connector is not None
+        self.check(self.data_channel is not None or pending, f"{os.path.basename(file)} : data connection open or pending when STOR is received")
+        return super().ftp_STOR(file, mode)
+
     #Run assertions to verify a file has been received
     def on_file_received(self, file):
         dtp = self.data_channel
