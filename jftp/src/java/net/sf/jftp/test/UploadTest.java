@@ -7,6 +7,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
  
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Map;
@@ -163,6 +164,33 @@ public class UploadTest {
         assertEquals("names and sizes are out of step", names.length, sizes.length);
 
         //Make a map of what JFTP says is there to compare against the expected
+        Map<String, String> clientListing = new TreeMap<String, String>();
+        for (int i = 0; i < names.length; i++) {
+            clientListing.put(names[i], names[i].endsWith("/") ? "dir" : sizes[i]);
+        }
+
+        assertEquals("JFtp's listing differs from the server directory", expected, clientListing);
+    }
+
+    @Test (expected = IOException.class)
+    public void listingBreaksWithoutCompatibility() throws Exception {
+        Files.write(server.root().resolve("report.txt"), new byte[1234]);
+        Files.write(server.root().resolve("my notes.txt"), new byte[7]);
+        Files.createDirectories(server.root().resolve("photos"));
+
+        Map<String, String> expected = new TreeMap<String, String>();
+        for (File f : server.root().toFile().listFiles()) {
+            expected.put(f.isDirectory() ? f.getName() + "/" : f.getName(),
+                        f.isDirectory() ? "dir" : String.valueOf(f.length()));
+        }
+
+        //WITHOUT List compatibility mode on, the extra -laL flag sent causes a timeout here
+        con.list();
+        String[] names = con.sortLs();
+        String[] sizes = con.sortSize();
+
+        assertEquals("names and sizes are out of step", names.length, sizes.length);
+
         Map<String, String> clientListing = new TreeMap<String, String>();
         for (int i = 0; i < names.length; i++) {
             clientListing.put(names[i], names[i].endsWith("/") ? "dir" : sizes[i]);
