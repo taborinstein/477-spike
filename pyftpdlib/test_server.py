@@ -75,7 +75,7 @@ def main():
         root = os.path.realpath(root)
         authorizer = DummyAuthorizer()
         authorizer.add_user("test", "test", root, perm="elradfmw")
-        authorizer.add_user("reader", "reader", root, perm="elr")
+        authorizer.add_user("readonly", "readonly", root, perm="elr")
 
         TestFTPHandler.authorizer = authorizer
         TestFTPHandler.root = root
@@ -87,7 +87,7 @@ def main():
 
         try:
             while not os.path.exists(stop_file):
-                server.serve_forever(timeout=FTPHandler.timeout, blocking=False)
+                server.ioloop.loop(timeout=FTPHandler.timeout, blocking=False)
         finally:
             server.close_all()
 
