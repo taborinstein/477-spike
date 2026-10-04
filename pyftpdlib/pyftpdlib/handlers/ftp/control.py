@@ -1234,6 +1234,38 @@ class FTPHandler(AsyncChat):
         # open data channel
         self._dtp_connector = self.active_dtp(ip, port, self)
 
+    def reset_data_channel(self):
+        # level 0 reset - reset the data channel
+        self._shutdown_connecting_dtp()
+
+        if self.data_channel is not None:
+            self.data_channel._resp = None
+            self.data_channel.close()
+
+        if self._in_dtp_queue is not None:
+            item = self._in_dtp_queue[0]
+            if item is not None and not item.closed:
+                item.close()
+        self._in_dtp_queue = None
+        self.respond("425 Connection aborted, restarting connection")
+        pass
+    
+    def restart_data_connection(self):
+        # level 1 reset - reset the data channel and the passive dtp
+        self._shutdown_connecting_dtp()
+        if self.data_channel is not None:
+            self.data_channel._resp = None
+            self.data_channel.close()
+        if self._in_dtp_queue is not None:
+            item = self._in_dtp_queue[0]
+            if item is not None and not item.closed:
+                item.close()
+        if self._dtp_acceptor:
+            self._dtp_acceptor.close()
+            self._dtp_acceptor = None
+        self._make_epasv()
+        self.respond("425 Connection aborted, restarting connection")
+    
     def _make_epasv(self, extmode=False):
         """Initialize a passive data channel with remote client which
         issued a PASV or EPSV command.
