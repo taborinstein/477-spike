@@ -16,7 +16,6 @@
 package net.sf.jftp.gui.tasks;
 
 import net.sf.jftp.config.Settings;
-import net.sf.jftp.gui.*;
 import net.sf.jftp.gui.framework.*;
 import net.sf.jftp.util.*;
 
