@@ -31,6 +31,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.function.Supplier;
 
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -100,7 +101,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	private String dataType;
 	private List<FtpTransfer> transfers = new ArrayList<FtpTransfer>();
 	private boolean modeStreamSet = false;
-	private DataConnection dcon = null;
+	private DataConnectable dcon = null;
 	private Vector<ConnectionListener> listeners = new Vector<ConnectionListener>();
 	private ConnectionHandler handler = new ConnectionHandler();
 	private FtpKeepAliveThread keepAliveThread = null;
@@ -118,7 +119,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	/** the InputStream of the control connection */
 	private BufferedReader in;
 	/** the OutputStream of the control connection */
-	private JConnection jcon;
+	private JConnectable jcon;
 
 	/** we are disconnected */
 	private boolean connected = false;
@@ -150,6 +151,17 @@ public class FtpConnection implements BasicConnection, FtpConstants
 		File f = new File(".");
 		setLocalPath(f.getAbsolutePath());
 	}
+
+    /**
+     * Create an instance with a given JConnectable. Useful for testing
+     * 
+     * @param jcon The JConnectable object
+     */
+    public FtpConnection(JConnectable _jcon) {
+        jcon = _jcon;
+        File f = new File(".");
+        setLocalPath(f.getAbsolutePath());
+    }
 
 	/**
 	 * Create an instance with a given host, port and initial remote working directory
@@ -221,7 +233,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 			Log.debug("Connecting to " + host);
 		}
 
-		jcon = new JConnection(host, port);
+		if (jcon == null) jcon = new JConnection(host, port);
 
 		if(jcon.isThere())
 		{
@@ -1342,7 +1354,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 
 			// we need to block since some ftp-servers do not want the
 			// refresh command that dirpanel sends otherwise
-			while(!dcon.finished)
+			while(!dcon.getFinished())
 			{
 				pause(10);
 			}
@@ -1521,9 +1533,12 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	 * @param file The file to upload
 	 * @return An int returncode
 	 */
-	public int upload(String file)
+	public int upload(String file) {
+        return upload(file, (Supplier<DataConnectable>) null);
+    }
+	public int upload(String file, Supplier<DataConnectable> dconCreator)
 	{
-		return upload(file, file);
+		return upload(file, file, dconCreator);
 	}
 
 	/**
@@ -1534,9 +1549,12 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	 * @param realName The file to rename the uploaded file to
 	 * @return An int responsecode
 	 */
-	public int upload(String file, String realName)
+	public int upload(String file, String realName) {
+        return upload(file, realName, (Supplier<DataConnectable>) null);
+    }
+	public int upload(String file, String realName, Supplier<DataConnectable> dconCreator)
 	{
-		return upload(file, realName, null);
+		return upload(file, realName, (InputStream) null, dconCreator);
 	}
 
 	/**
@@ -1546,7 +1564,10 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	 * @param in InputStream to read from
 	 * @return An int responsecode
 	 */
-	public int upload(String file, InputStream in)
+	public int upload(String file, InputStream in) {
+        return upload(file, file, in, (Supplier<DataConnectable>) null);
+    }
+	public int upload(String file, InputStream in, Supplier<DataConnectable> dconCreator)
 	{
 		return upload(file, file, in);
 	}
@@ -1560,7 +1581,10 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	 * @param in InputStream to read from
 	 * @return An int responsecode
 	 */
-	public int upload(String file, String realName, InputStream in)
+	public int upload(String file, String realName, InputStream in) {
+        return upload(file, realName, in, null);
+    }
+	public int upload(String file, String realName, InputStream in, Supplier<DataConnectable> dconCreator)
 	{
 		hasUploaded = true;
 		Log.out("ftp upload started: " + this);
@@ -1575,7 +1599,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 			dataType = DataConnection.PUTDIR;
 			isDirUpload = true;
 
-			stat = uploadDir(file);
+			stat = uploadDir(file, dconCreator);
 
 			shortProgress = false;
 
@@ -1589,7 +1613,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 		else
 		{
 			dataType = DataConnection.PUT;
-			stat = rawUpload(file, realName, in);
+			stat = rawUpload(file, realName, in, dconCreator);
 
 			try
 			{
@@ -1614,18 +1638,21 @@ public class FtpConnection implements BasicConnection, FtpConstants
 		return stat;
 	}
 
-	private int rawUpload(String file)
+	private int rawUpload(String file, Supplier<DataConnectable> dconCreator)
 	{
-		return rawUpload(file, file);
+		return rawUpload(file, file, dconCreator);
 	}
 
-	private int rawUpload(String file, String realName)
+	private int rawUpload(String file, String realName, Supplier<DataConnectable> dconCreator)
 	{
-		return rawUpload(file, realName, null);
+		return rawUpload(file, realName, dconCreator);
 	}
 
 	/** uploads a file */
-	private int rawUpload(String file, String realName, InputStream in)
+	// private int rawUpload(String file, String realName, InputStream in) {
+    //     return rawUpload(file, realName, in, null);
+    // }
+	private int rawUpload(String file, String realName, InputStream in, Supplier<DataConnectable> dconCreator)
 	{
 		if(!file.equals(realName))
 		{
@@ -1730,8 +1757,9 @@ public class FtpConnection implements BasicConnection, FtpConstants
 				}
 			}
 
-			dcon = new DataConnection(this, p, host, path, dataType, resume,
+			if (dconCreator == null) dcon = new DataConnection(this, p, host, path, dataType, resume,
 					Integer.parseInt(size), in); //, new Updater());
+            else dcon = dconCreator.get();
 
 			while(!dcon.isThere())
 			{
@@ -1759,10 +1787,10 @@ public class FtpConnection implements BasicConnection, FtpConstants
 
 			// we need to block since some ftp-servers do not want the
 			// refresh command that dirpanel sends otherwise
-			while(!dcon.finished)
-			{
-				pause(10);
-			}
+			while(!dcon.getFinished())
+                {
+                    pause(10);
+                }
 		}
 		catch(Exception ex)
 		{
@@ -1775,7 +1803,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 		return TRANSFER_SUCCESSFUL;
 	}
 
-	private int uploadDir(String dir)
+	private int uploadDir(String dir, Supplier<DataConnectable> dconCreator)
 	{
 		//System.out.println("up");
 		if(dir.endsWith("\\"))
@@ -1833,7 +1861,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 					return TRANSFER_STOPPED;
 				}
 
-				uploadDir(res);
+				uploadDir(res, dconCreator);
 			}
 			else
 			{
@@ -1846,7 +1874,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 
 				fileCount++;
 
-				if(rawUpload(res) < 0)
+				if(rawUpload(res, dconCreator) < 0)
 				{
 					; //return TRANSFER_STOPPED;
 				}
@@ -2104,6 +2132,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 			}
 			catch(Exception ex)
 			{
+                ex.printStackTrace();
 				Log.debug(ex.toString() + " @FtpConnection::getLine");
 
 				break;
@@ -2289,7 +2318,10 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	 *
 	 * @param outfile The file to save the output to, usually Settings.ls_out
 	 */
-	public void list() throws IOException
+	public void list() throws IOException {
+        list(null);
+    }
+	public void list(DataConnectable dcon_in) throws IOException
 	{
 		String oldType = ""; 
 
@@ -2305,7 +2337,8 @@ public class FtpConnection implements BasicConnection, FtpConstants
 			ascii();
 
 			p = negotiatePort();
-			dcon = new DataConnection(this, p, host, null, DataConnection.GET, false, true); //,null);
+			if(dcon_in == null) dcon = new DataConnection(this, p, host, null, DataConnection.GET, false, true); //,null);
+            else dcon = dcon_in;
 
 			while(dcon.getInputStream() == null)
 			{
@@ -2320,7 +2353,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 			currentListing.removeAllElements();
 
 			while((line = input.readLine()) != null) {
-				//System.out.println("-> "+line);
+				// System.out.println("-> "+line);
 				if(!line.trim().equals("")) { 
 					currentListing.add(line);
 				}
@@ -2911,7 +2944,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 	 *
 	 * @return The DataConnection object currently used by this conenction
 	 */
-	public DataConnection getDataConnection()
+	public DataConnectable getDataConnection()
 	{
 		return dcon;
 	}
@@ -3108,7 +3141,7 @@ public class FtpConnection implements BasicConnection, FtpConstants
 		for(FtpTransfer transfer : transfers) {
 			try
 			{
-				DataConnection dcon = transfer.getDataConnection();
+				DataConnectable dcon = transfer.getDataConnection();
 	
 				if(dcon == null || dcon.sock.isClosed())
 				{

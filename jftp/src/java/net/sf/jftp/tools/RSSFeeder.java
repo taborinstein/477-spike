@@ -17,7 +17,6 @@ package net.sf.jftp.tools;
 
 import net.sf.jftp.JFtp;
 import net.sf.jftp.config.Settings;
-import net.sf.jftp.gui.*;
 import net.sf.jftp.gui.base.StatusCanvas;
 import net.sf.jftp.gui.framework.*;
 import net.sf.jftp.system.LocalIO;

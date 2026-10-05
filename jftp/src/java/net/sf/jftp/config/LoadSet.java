@@ -17,7 +17,6 @@ package net.sf.jftp.config;
 
 import net.sf.jftp.*;
 import net.sf.jftp.config.*;
-import net.sf.jftp.gui.*;
 import net.sf.jftp.gui.base.UIUtils;
 import net.sf.jftp.system.logging.Log;
 import net.sf.jftp.util.*;

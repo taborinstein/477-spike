@@ -35,6 +35,7 @@ import net.sf.jftp.gui.framework.HPanel;
 import net.sf.jftp.gui.framework.ProgressBarList;
 import net.sf.jftp.gui.framework.ProgressbarItem;
 import net.sf.jftp.net.ConnectionHandler;
+import net.sf.jftp.net.DataConnectable;
 import net.sf.jftp.net.DataConnection;
 import net.sf.jftp.net.Transfer;
 import net.sf.jftp.net.wrappers.HttpTransfer;
@@ -193,7 +194,7 @@ public class DownloadList extends HPanel implements ActionListener
                 {
                     Transfer d = (Transfer) o;
 
-                    DataConnection con = d.getDataConnection();
+                    DataConnectable con = d.getDataConnection();
                     con.getCon().work = false;
 
                     try
@@ -248,7 +249,7 @@ public class DownloadList extends HPanel implements ActionListener
                 Transfer d = (Transfer) o;
                 d.pause = true;
 
-                DataConnection con = d.getDataConnection();
+                DataConnectable con = d.getDataConnection();
 
                 try
                 {

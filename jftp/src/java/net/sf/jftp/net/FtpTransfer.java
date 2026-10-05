@@ -254,7 +254,7 @@ public class FtpTransfer extends Transfer implements Runnable
         return con;
     }
 
-    public DataConnection getDataConnection()
+    public DataConnectable getDataConnection()
     {
         return con.getDataConnection();
     }
