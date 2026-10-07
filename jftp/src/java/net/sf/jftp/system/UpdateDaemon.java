@@ -17,7 +17,6 @@ package net.sf.jftp.system;
 
 import net.sf.jftp.JFtp;
 import net.sf.jftp.config.Settings;
-import net.sf.jftp.gui.*;
 import net.sf.jftp.gui.base.LocalDir;
 import net.sf.jftp.gui.base.RemoteDir;
 import net.sf.jftp.util.*;

@@ -34,7 +34,7 @@ import net.sf.jftp.system.logging.Log;
 * This class represents a ftp data connection.
 * It is used internally by FtpConnection, so you probably don't have to use it directly.
 */
-public class DataConnection implements Runnable
+public class DataConnection implements Runnable, DataConnectable
 {
     public final static String GET = "GET";
     public final static String PUT = "PUT";
@@ -751,5 +751,9 @@ public class DataConnection implements Runnable
 	//Log.debug("Newline_own: "+LINEEND+", s:"+s);
 	
 	return s.getBytes();
+    }
+    
+    public boolean getFinished() {
+        return this.finished;
     }
 }
