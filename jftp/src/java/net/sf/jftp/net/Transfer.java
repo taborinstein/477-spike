@@ -24,5 +24,5 @@ public abstract class Transfer
 
     public abstract FtpConnection getFtpConnection();
 
-    public abstract DataConnection getDataConnection();
+    public abstract DataConnectable getDataConnection();
 }

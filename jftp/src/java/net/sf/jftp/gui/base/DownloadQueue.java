@@ -192,7 +192,7 @@ public class DownloadQueue extends HPanel implements ActionListener
                 //Transfer d = (Transfer)handler.getConnections().get(rec.file);
                 //DataConnection dcon = d.getDataConnection();
                 FtpConnection ftpcon = (FtpConnection) con;
-                DataConnection dcon = ftpcon.getDataConnection();
+                DataConnectable dcon = ftpcon.getDataConnection();
                 dcon.getCon().work = false;
 
                 try
