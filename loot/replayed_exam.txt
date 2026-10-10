@@ -1,0 +1,37 @@
+================================================================
+  ROSE-HULMAN INSTITUTE OF TECHNOLOGY  --  CONFIDENTIAL
+  CSSE/MA 232  --  MIDTERM EXAM 2  (CLOSED NOTES)
+  DO NOT DISTRIBUTE -- FOR ENROLLED STUDENTS ONLY
+================================================================
+
+Student instructions: You have 90 minutes. Show all work.
+Each problem is worth 20 points. Good luck.
+
+----------------------------------------------------------------
+PROBLEM 1 (Graph theory)
+Prove that every tree on n >= 2 vertices has at least two leaves.
+
+PROBLEM 2 (Number theory)
+Compute 7^(644) mod 645 using repeated squaring. Show each step.
+
+PROBLEM 3 (Linear algebra)
+Let A be a 3x3 real matrix with eigenvalues 1, 2, and 2.
+Is A necessarily diagonalizable? Justify.
+
+PROBLEM 4 (Algorithms)
+Give the tight asymptotic running time of the recurrence
+    T(n) = 2 T(n/2) + n log n
+and prove your bound.
+
+PROBLEM 5 (Probability)
+A fair coin is flipped until two consecutive heads appear.
+Find the expected number of flips.
+
+================================================================
+  ANSWER KEY (INSTRUCTOR COPY -- must never leave the server)
+    1. Count degrees: sum deg = 2(n-1) < 2n ...
+    2. 7^644 mod 645 = 436
+    3. Not necessarily; depends on geometric multiplicity of 2.
+    4. Theta(n log^2 n) by the recursion-tree / Akra-Bazzi.
+    5. 6 flips.
+================================================================

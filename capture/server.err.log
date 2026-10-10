@@ -1,0 +1,14 @@
+[server] 19:25:43 concurrency model: async
+[server] 19:25:43 masquerade (NAT) address: 127.0.0.1
+[server] 19:25:43 passive ports: 60000->60010
+[server] 19:25:43 >>> starting FTP server on 127.0.0.1:2121, pid=29716 <<<
+[server] 19:25:43 127.0.0.1:58580-[] FTP session opened (connect)
+[server] 19:25:43 127.0.0.1:58580-[] FTP session closed (disconnect).
+[server] 19:25:45 127.0.0.1:58593-[] FTP session opened (connect)
+[server] 19:25:45 127.0.0.1:58593-[student] USER 'student' logged in.
+[server] 19:25:45 127.0.0.1:58593-[student] RETR C:\Users\borromkj\Documents\CSSE477\477-spike\server_root\exam.txt completed=1 bytes=1425 seconds=0.0
+[server] 19:25:45 127.0.0.1:58593-[student] FTP session closed (disconnect).
+[server] 19:25:58 127.0.0.1:58623-[] FTP session opened (connect)
+[server] 19:25:58 127.0.0.1:58623-[student] USER 'student' logged in.
+[server] 19:25:58 127.0.0.1:58623-[student] RETR C:\Users\borromkj\Documents\CSSE477\477-spike\server_root\exam.txt completed=1 bytes=1425 seconds=0.016
+[server] 19:25:58 127.0.0.1:58623-[student] FTP session closed (disconnect).

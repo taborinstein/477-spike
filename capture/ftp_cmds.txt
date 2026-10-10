@@ -1,0 +1,6 @@
+open 127.0.0.1 2121
+user student RHITspr26!exam
+binary
+ls
+get exam.txt capture\student_download.txt
+quit
