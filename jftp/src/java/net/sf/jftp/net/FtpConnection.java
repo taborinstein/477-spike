@@ -251,28 +251,54 @@ public class FtpConnection implements BasicConnection, FtpConstants
 				Log.debug("Connection established...");
 			}
 
-			jcon.send(USER + " " + username);
-
-			if(!getLine(loginAck).startsWith(POSITIVE))//FTP230_LOGGED_IN))
-			{
-				jcon.send(PASS + " " + password);
-
-				if(success(POSITIVE))//FTP230_LOGGED_IN))
-				{
-					if(msg)
-					{
-						Log.debug("Logged in...");
-					}
-				}
-				else
-				{
-					Log.debug("Wrong password!");
+			// ================================= M3: The TLS handshake ======================================
+			if(ok && Settings.useFtps) {
+				jcon.send(AUTH + " TLS");
+				String aresp = getLine(POSITIVE); //Looking for 234
+				if((aresp == null) || !aresp.startsWith(POSITIVE)) {
+					Log.debug("AUTH TLS refused by server (" + aresp + ")");
 					ok = false;
-					status = WRONG_LOGIN_DATA;
+					status = GENERIC_FAILED;
+				} else if(!jcon.startTLS()) {
+					Log.debug("TLS handshake on control channel failed");
+					ok = false;
+					status = GENERIC_FAILED;
+				} else {
+					// FTPS wants a PBSZ 0 then PROT P to TLS the data channel
+					jcon.send("PBSZ 0");
+					getLine(POSITIVE); //Looking for 200
+					jcon.send("PROT P");
+					getLine(POSITIVE); //Looking for 200
+
+					if(msg) {
+						Log.debug("FTPS active. Control and data channels encrypted.");
+					}
 				}
 			}
 
-			// end if(jcon)...
+			if(ok) {
+				jcon.send(USER + " " + username);
+
+				if(!getLine(loginAck).startsWith(POSITIVE))//FTP230_LOGGED_IN))
+				{
+					jcon.send(PASS + " " + password);
+
+					if(success(POSITIVE))//FTP230_LOGGED_IN))
+					{
+						if(msg)
+						{
+							Log.debug("Logged in...");
+						}
+					}
+					else
+					{
+						Log.debug("Wrong password!");
+						ok = false;
+						status = WRONG_LOGIN_DATA;
+					}
+				} // end if(jcon)...
+			} // end if (ok) for TLS
+
 		}
 		else
 		{

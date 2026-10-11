@@ -91,6 +91,11 @@ public class Settings
     // sends NOOPs to ensure that buffers are empty
     public static boolean safeMode = false;
 
+    // =================================== M3: Needed for FtpTLS.java to work ================================
+    public static boolean useFtps = true;
+    // Needed for testing
+    public static boolean ftpsTrustAllCerts = true;
+
     // enables some delays 
     public static boolean enableFtpDelays = false;
 

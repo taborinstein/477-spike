@@ -1,5 +1,0 @@
-open 127.0.0.1 2121
-user student RHITspr26!exam
-binary
-get exam.txt loot\replayed_exam.txt
-quit

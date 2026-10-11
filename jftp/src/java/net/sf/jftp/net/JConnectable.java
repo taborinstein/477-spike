@@ -19,4 +19,7 @@ public interface JConnectable {
 
     OutputStream getOut();
 
+    // ========================================== M3: TLS command ==================================
+    boolean startTLS();
+
 }
