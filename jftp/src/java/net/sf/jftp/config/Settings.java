@@ -94,7 +94,9 @@ public class Settings
     // =================================== M3: Needed for FtpTLS.java to work ================================
     public static boolean useFtps = true;
     // Needed for testing
-    public static boolean ftpsTrustAllCerts = true;
+    public static boolean ftpsTrustAllCerts = false;
+    //Define the path name to the certificate for the trusted server
+    public static final String ftpsTrustedCert = "cert.pem";
 
     // enables some delays 
     public static boolean enableFtpDelays = false;
