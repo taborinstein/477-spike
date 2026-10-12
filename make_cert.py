@@ -1,5 +1,5 @@
-# make_cert.py -- generate a self-signed cert (cert.pem + key.pem) next to this script.
-# Uses the 'cryptography' library (installed alongside pyftpdlib/pyOpenSSL) -- no openssl binary needed.
+# Generate a self-signed cert (cert.pem + key.pem) next to this script.
+# Uses the 'cryptography' library (installed with pyftpdlib/pyOpenSSL)
 import datetime, ipaddress, os
 from cryptography import x509
 from cryptography.x509.oid import NameOID
