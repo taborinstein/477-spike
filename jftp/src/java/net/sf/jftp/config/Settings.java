@@ -96,7 +96,7 @@ public class Settings
     // Needed for testing
     public static boolean ftpsTrustAllCerts = false;
     //Define the path name to the certificate for the trusted server
-    public static final String ftpsTrustedCert = "cert.pem";
+    public static String ftpsTrustedCert = "cert.pem";
 
     // enables some delays 
     public static boolean enableFtpDelays = false;
