@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 REPO_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 FIXTURE_ROOT="$SCRIPT_DIR/server_root"
+CONFIG_FILE="$SCRIPT_DIR/lab_config.json"
 
 if [[ $EUID -eq 0 ]]; then
     printf 'Run this lab as a non-root user so POSIX mode checks are enforced.\n' >&2
@@ -18,6 +19,38 @@ for command_name in ftp python3; do
     fi
 done
 
+read_account() {
+    python3 - "$CONFIG_FILE" "$1" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as config_file:
+    config = json.load(config_file)
+username = sys.argv[2]
+password = config["users"][username]["password"]
+if any(char.isspace() for char in username + password):
+    raise SystemExit("FTP usernames and passwords must not contain whitespace")
+print(username)
+print(password)
+PY
+}
+
+mapfile -t STUDENT_ACCOUNT < <(read_account student)
+mapfile -t CHMODONLY_ACCOUNT < <(read_account chmodonly)
+mapfile -t UNLISTED_ACCOUNT < <(read_account unlisted)
+if [[ ${#STUDENT_ACCOUNT[@]} -ne 2 ||
+    ${#CHMODONLY_ACCOUNT[@]} -ne 2 ||
+    ${#UNLISTED_ACCOUNT[@]} -ne 2 ]]; then
+    printf 'Could not load lab accounts from %s.\n' "$CONFIG_FILE" >&2
+    exit 1
+fi
+STUDENT_USER=${STUDENT_ACCOUNT[0]}
+STUDENT_PASSWORD=${STUDENT_ACCOUNT[1]}
+CHMODONLY_USER=${CHMODONLY_ACCOUNT[0]}
+CHMODONLY_PASSWORD=${CHMODONLY_ACCOUNT[1]}
+UNLISTED_USER=${UNLISTED_ACCOUNT[0]}
+UNLISTED_PASSWORD=${UNLISTED_ACCOUNT[1]}
+
 TMP_DIR=$(mktemp -d)
 SERVER_ROOT="$TMP_DIR/server_root"
 cp -R "$FIXTURE_ROOT" "$SERVER_ROOT"
@@ -25,6 +58,14 @@ EXAM="$SERVER_ROOT/exam.txt"
 PAYLOAD="$TMP_DIR/replacement.txt"
 DOWNLOAD="$TMP_DIR/downloaded_exam.txt"
 SERVER_LOG="$TMP_DIR/server.log"
+PORT=$(python3 - <<'PY'
+import socket
+
+with socket.socket() as sock:
+    sock.bind(("127.0.0.1", 0))
+    print(sock.getsockname()[1])
+PY
+)
 chmod 0444 "$EXAM"
 printf 'UNAUTHORIZED REPLACEMENT: the student changed this exam.\n' >"$PAYLOAD"
 
@@ -38,27 +79,16 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-PYTHONPATH="$REPO_DIR/pyftpdlib${PYTHONPATH:+:$PYTHONPATH}" python3 - "$SERVER_ROOT" >"$SERVER_LOG" 2>&1 <<'PY' &
-import sys
-
-from pyftpdlib.authorizers import DummyAuthorizer
-from pyftpdlib.handlers import FTPHandler
-from pyftpdlib.servers import FTPServer
-
-root = sys.argv[1]
-authorizer = DummyAuthorizer()
-authorizer.add_user("student", "studentpass", root, perm="elrwM")
-authorizer.add_user("chmodonly", "chmodpass", root, perm="elrM")
-handler = FTPHandler
-handler.authorizer = authorizer
-server = FTPServer(("127.0.0.1", 0), handler)
-print(f"READY:{server.socket.getsockname()[1]}", flush=True)
-server.serve_forever()
-PY
+PYTHONPATH="$REPO_DIR/pyftpdlib${PYTHONPATH:+:$PYTHONPATH}" \
+    python3 -m pyftpdlib \
+    --config "$CONFIG_FILE" \
+    --directory "$SERVER_ROOT" \
+    --interface 127.0.0.1 \
+    --port "$PORT" >"$SERVER_LOG" 2>&1 &
 SERVER_PID=$!
 
 for _ in {1..50}; do
-    if grep -q '^READY:' "$SERVER_LOG"; then
+    if grep -q "starting FTP server on 127.0.0.1:$PORT," "$SERVER_LOG"; then
         break
     fi
     if ! kill -0 "$SERVER_PID" 2>/dev/null; then
@@ -69,12 +99,11 @@ for _ in {1..50}; do
     sleep 0.1
 done
 
-if ! grep -q '^READY:' "$SERVER_LOG"; then
+if ! grep -q "starting FTP server on 127.0.0.1:$PORT," "$SERVER_LOG"; then
     cat "$SERVER_LOG" >&2
     printf 'Timed out waiting for the FTP server.\n' >&2
     exit 1
 fi
-PORT=$(sed -n 's/^READY://p' "$SERVER_LOG" | head -n 1)
 
 ftp_session() {
     ftp -invp 127.0.0.1 "$PORT"
@@ -82,7 +111,7 @@ ftp_session() {
 
 printf '1. Student downloads the protected exam.\n'
 download_log=$(ftp_session <<EOF
-user student studentpass
+user $STUDENT_USER $STUDENT_PASSWORD
 binary
 get exam.txt $DOWNLOAD
 quit
@@ -97,7 +126,7 @@ printf '   Download succeeded.\n'
 
 printf '2. Upload fails while the server-side file is mode 0444.\n'
 before_log=$(ftp_session <<EOF
-user student studentpass
+user $STUDENT_USER $STUDENT_PASSWORD
 binary
 put $PAYLOAD exam.txt
 quit
@@ -116,7 +145,7 @@ printf '   Upload was blocked by the file mode.\n'
 
 printf '3. SITE CHMOD grants the owner/group/other write bits; STOR now replaces the file.\n'
 attack_log=$(ftp_session <<EOF
-user student studentpass
+user $STUDENT_USER $STUDENT_PASSWORD
 binary
 quote site chmod 666 exam.txt
 put $PAYLOAD exam.txt
@@ -134,7 +163,7 @@ printf '   Replacement verified in the temporary server root.\n'
 
 printf '4. chmod does not grant FTP DELE permission (student has no d right).\n'
 delete_log=$(ftp_session <<EOF
-user student studentpass
+user $STUDENT_USER $STUDENT_PASSWORD
 delete exam.txt
 quit
 EOF
@@ -149,7 +178,7 @@ printf '   DELE was denied by pyftpdlib authorization.\n'
 printf '5. A chmod-only account can chmod but cannot upload without w.\n'
 chmod 0444 "$EXAM"
 chmodonly_log=$(ftp_session <<EOF
-user chmodonly chmodpass
+user $CHMODONLY_USER $CHMODONLY_PASSWORD
 quote site chmod 666 exam.txt
 put $PAYLOAD exam.txt
 quit
@@ -164,4 +193,20 @@ if ! grep -q '^200 SITE CHMOD successful' <<<"$chmodonly_log" ||
 fi
 printf '   SITE CHMOD succeeded, but STOR was denied by pyftpdlib.\n'
 
-printf '\nSimulation passed. The fixture was never modified; the temporary server root will be removed.\n'
+printf '6. A user with M but not in site_chmod_users cannot chmod.\n'
+chmod 0444 "$EXAM"
+chmod_log=$(ftp_session <<EOF
+user $UNLISTED_USER $UNLISTED_PASSWORD
+quote site chmod 666 exam.txt
+quit
+EOF
+) || true
+if ! grep -q '^550 Not enough privileges\.' <<<"$chmod_log" ||
+    [[ $(stat -c '%a' "$EXAM") != 444 ]]; then
+    printf '%s\n' "$chmod_log" >&2
+    printf 'Expected the non-allowlisted chmod request to be denied.\n' >&2
+    exit 1
+fi
+printf '   SITE CHMOD was denied by the configured user allowlist.\n'
+
+printf '\nSimulation passed via python -m pyftpdlib. The fixture was never modified; the temporary server root will be removed.\n'

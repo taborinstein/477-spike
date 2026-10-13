@@ -29,6 +29,36 @@ Specify a user with write permissions:
 
     $ python3 -m pyftpdlib --username=bob --password=mypassword
 
+Define multiple users and restrict ``SITE CHMOD`` to a named allowlist with a
+project-local JSON file:
+
+.. code-block:: json
+
+        {
+            "users": {
+                "student": {
+                    "password": "studentpass",
+                    "permissions": "elr"
+                },
+                "instructor": {
+                    "password": "instructorpass",
+                    "permissions": "elradfmwMT"
+                }
+            },
+            "site_chmod_users": ["instructor"]
+        }
+
+Start the server with that file:
+
+.. code-block::
+
+        $ python3 -m pyftpdlib --config=ftp-users.json --directory=/srv/ftp --port=12345
+
+Users listed in ``site_chmod_users`` must also have the ``M`` permission in
+their own ``permissions`` string. The ``--config`` option cannot be combined
+with ``--username``, ``--password``, or ``--write``. The existing single-user
+options remain available when no config file is supplied.
+
 Set a different address/port and home directory:
 
 .. code-block::
@@ -74,6 +104,8 @@ See ``python3 -m pyftpdlib -h`` for a complete list of options:
                             specify username to login with (anonymous login will be disabled and password required if supplied)
       -P, --password PASSWORD
                             specify a password to login with (username required to be useful)
+    --config PATH
+                    JSON file defining FTP users, permissions, and optional SITE CHMOD allowlist
       --concurrency CONCURRENCY
                             the FTP server concurrency model to use, either 'async' (default), 'pre-fork', 'multi-thread' or 'multi-proc'
 

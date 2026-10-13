@@ -1,0 +1,20 @@
+{
+  "users": {
+    "student": {
+      "password": "studentpass",
+      "permissions": "elrwM"
+    },
+    "chmodonly": {
+      "password": "chmodpass",
+      "permissions": "elrM"
+    },
+    "unlisted": {
+      "password": "unlistedpass",
+      "permissions": "elrM"
+    }
+  },
+  "site_chmod_users": [
+    "student",
+    "chmodonly"
+  ]
+}

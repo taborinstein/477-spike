@@ -4,6 +4,7 @@
 
 import argparse
 import io
+import json
 import os
 import warnings
 from unittest.mock import patch
@@ -147,6 +148,63 @@ class TestCommandLineParser(PyftpdlibTestCase):
         # no --password
         with pytest.raises(argparse.ArgumentTypeError):
             main(["--username", "foo"])
+
+    def test_config_users_and_site_chmod_allowlist(self):
+        config_path = self.get_testfn()
+        with open(config_path, "w", encoding="utf-8") as config_file:
+            json.dump(
+                {
+                    "users": {
+                        "student": {
+                            "password": "studentpass",
+                            "permissions": "elrM",
+                        },
+                        "instructor": {
+                            "password": "instructorpass",
+                            "permissions": "elradfmwMT",
+                        },
+                    },
+                    "site_chmod_users": ["instructor"],
+                },
+                config_file,
+            )
+
+        ftpd = main(["--config", config_path, "-d", ".", "-p", "0"])
+        authorizer = ftpd.handler.authorizer
+        assert authorizer.get_perms("student") == "elrM"
+        assert authorizer.get_perms("instructor") == "elradfmwMT"
+        assert not authorizer.has_user("anonymous")
+        assert ftpd.handler.site_chmod_users == frozenset({"instructor"})
+        ftpd.close_all()
+
+    def test_config_rejects_unknown_chmod_users(self):
+        config_path = self.get_testfn()
+        with open(config_path, "w", encoding="utf-8") as config_file:
+            json.dump(
+                {
+                    "users": {
+                        "student": {"password": "x", "permissions": "elr"}
+                    },
+                    "site_chmod_users": ["missing"],
+                },
+                config_file,
+            )
+        with pytest.raises(SystemExit):
+            main(["--config", config_path])
+
+    def test_config_cannot_be_combined_with_single_user_options(self):
+        config_path = self.get_testfn()
+        with open(config_path, "w", encoding="utf-8") as config_file:
+            json.dump(
+                {
+                    "users": {"student": {"password": "x", "permissions": "elr"}}
+                },
+                config_file,
+            )
+        with pytest.raises(
+            argparse.ArgumentTypeError, match="cannot be combined"
+        ):
+            main(["--config", config_path, "-u", "student", "-P", "x"])
 
     def test_concurrency(self):
         ftpd = main(["--concurrency", "multi-thread"])
