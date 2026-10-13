@@ -21,3 +21,7 @@ curltest.txt
 # --- OS / editor cruft ---
 .DS_Store
 Thumbs.db
+
+# runtime artefacts
+loot/
+capture/
