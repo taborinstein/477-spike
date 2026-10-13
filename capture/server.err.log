@@ -1,9 +1,0 @@
-Traceback (most recent call last):
-  File "C:\Users\borromkj\Documents\26-4Fall\CSSE477\477-spike\ftps_server.py", line 17, in <module>
-    srv = FTPServer(("127.0.0.1", 2121), h)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\borromkj\Documents\26-4Fall\CSSE477\477-spike\pyftpdlib\servers.py", line 117, in __init__
-    self.bind_af_unspecified(address_or_socket)
-  File "C:\Users\borromkj\Documents\26-4Fall\CSSE477\477-spike\pyftpdlib\ioloop.py", line 1068, in bind_af_unspecified
-    raise OSError(err)
-OSError: [WinError 10048] Only one usage of each socket address (protocol/network address/port) is normally permitted
