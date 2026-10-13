@@ -134,4 +134,9 @@ public class JConnectionDataSource implements JConnectable {
         throw new UnsupportedOperationException("Unimplemented method 'getOut'");
     }
 
+    // =========================== M3: To not break anything, we just always return true here =================
+    public boolean startTLS() {
+        return true;
+    }
+
 }
