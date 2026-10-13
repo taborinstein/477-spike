@@ -96,7 +96,7 @@ public class Settings
     // Needed for testing
     public static boolean ftpsTrustAllCerts = false; //NOTE: Change this to "TRUE" if you want all servers to be trusted
     //Define the path name to the certificate for the trusted server
-    public static String ftpsTrustedCert = "cert.pem"; //NOTE: This is the file name of the server's correct certificate
+    public static String ftpsTrustedCert = "..\\attack-aitm\\cert.pem"; //NOTE: This is the file name of the server's correct certificate
 
     // enables some delays 
     public static boolean enableFtpDelays = false;
