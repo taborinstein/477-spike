@@ -32,7 +32,7 @@ import net.sf.jftp.system.logging.Log;
  * timeout sets (as the name says) the maximum time the Thread
  * waits for the target host...
  */
-public class JConnection implements Runnable
+public class JConnection implements Runnable, JConnectable
 {
     private int timeout = Settings.connectionTimeout;
     private String host;
