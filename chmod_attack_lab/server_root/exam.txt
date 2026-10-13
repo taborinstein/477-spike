@@ -1,0 +1,4 @@
+MIDTERM EXAM - CONFIDENTIAL
+
+Question 1: Explain the difference between FTP command permissions and POSIX file permissions.
+Question 2: Describe why changing a file's mode does not grant FTP DELE permission.
