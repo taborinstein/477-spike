@@ -625,6 +625,10 @@ public class JFtp extends JPanel implements WindowListener, ComponentListener,
     		Settings.enableUploadResuming = true;
     		Settings.noUploadResumingQuestion = false;
 
+    		Settings.setProperty("jftp.security.storePasswords", false);
+    		Settings.save();
+    		net.sf.jftp.config.StoredPasswordScrubber.scrub();
+
     		setSocksProxyOptions(Settings.getSocksProxyHost(),
     				Settings.getSocksProxyPort());
 

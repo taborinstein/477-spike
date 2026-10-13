@@ -62,7 +62,6 @@ public class Settings
     private static String enableSmbMultiThreading = "true";
     private static String enableSftpMultiThreading = "true";
     private static String noUploadMultiThreading = "false";
-    private static String storePasswords = "false";
     
     public static boolean useFixedTableWidths = true;
     public static boolean enableWebDav = false;
@@ -565,19 +564,12 @@ public class Settings
         return 3000;
     }
 
+    /**
+     * Passwords are never stored. The Store passwords option has been removed.
+     */
     public static boolean getStorePasswords()
     {
-        String what = p.getProperty("jftp.security.storePasswords",
-                                    storePasswords);
-
-        if(what.trim().equals("false"))
-        {
-            return false;
-        }
-        else
-        {
-            return true;
-        }
+        return false;
     }
     
     static

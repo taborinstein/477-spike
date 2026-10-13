@@ -16,3 +16,9 @@ syntax: glob
 .tox/
 build/
 dist/
+
+# for the ../attack/ security spike demo: drop a test exam file/dir here
+# before starting this checkout as the FTP server's document root
+# (`python3 -m pyftpdlib -d .`), so it isn't accidentally committed
+exam.txt
+exam_drop/

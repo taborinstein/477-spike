@@ -19,6 +19,7 @@ package net.sf.jftp.gui.tasks;
 
 import net.sf.jftp.*;
 import net.sf.jftp.config.*;
+import net.sf.jftp.gui.base.UIUtils;
 import net.sf.jftp.gui.framework.*;
 import net.sf.jftp.net.*;
 import net.sf.jftp.net.wrappers.StartConnection;
@@ -44,8 +45,6 @@ public class AddBookmarks extends HFrame implements ActionListener,
     public HComboBox protocols = new HComboBox("Protocol:");
     public HTextField host = new HTextField("Hostname:", "localhost");
     public HTextField user = new HTextField("Username:", "anonymous");
-    public HPasswordField pass = new HPasswordField("Password:",
-                                                    "none@nowhere.no");
     public HTextField port = new HTextField("Port:    ", "21");
     public HTextField dirOrDom = new HTextField("Directory/Domain:    ", "");
 
@@ -74,14 +73,13 @@ public class AddBookmarks extends HFrame implements ActionListener,
         setTitle("Add Bookmarks...");
 
         //setBackground(okP.getBackground());   
-        getContentPane().setLayout(new GridLayout(8, 1));
+        getContentPane().setLayout(new GridLayout(7, 1));
 
         getContentPane().add(protocols);
         getContentPane().add(host);
         getContentPane().add(port);
 
         getContentPane().add(user);
-        getContentPane().add(pass);
 
         getContentPane().add(dirOrDom);
 
@@ -182,14 +180,12 @@ public class AddBookmarks extends HFrame implements ActionListener,
             {
                 port.setEnabled(true);
                 user.setEnabled(true);
-                pass.setEnabled(true);
                 dirOrDom.setEnabled(true);
             }
             else if(s.equals("SFTP"))
             {
                 port.setEnabled(true);
                 user.setEnabled(true);
-                pass.setEnabled(true);
                 dirOrDom.setEnabled(false);
             }
 
@@ -197,7 +193,6 @@ public class AddBookmarks extends HFrame implements ActionListener,
             {
                 port.setEnabled(false);
                 user.setEnabled(true);
-                pass.setEnabled(true);
                 dirOrDom.setEnabled(true);
             }
 
@@ -206,7 +201,6 @@ public class AddBookmarks extends HFrame implements ActionListener,
             {
                 port.setEnabled(false);
                 user.setEnabled(true);
-                pass.setEnabled(true);
                 dirOrDom.setEnabled(false);
             }
 
@@ -260,7 +254,6 @@ public class AddBookmarks extends HFrame implements ActionListener,
         */
         String htmp = checkIfEmpty(StringUtils.cut(host.getText(), " "));
         String utmp = checkIfEmpty(StringUtils.cut(user.getText(), " "));
-        String ptmp = checkIfEmpty(StringUtils.cut(pass.getText(), " "));
         String potmp = checkIfEmpty(StringUtils.cut(port.getText(), " "));
 
         String dirOrDomtmp = checkIfEmpty(StringUtils.cut(dirOrDom.getText(),
@@ -297,7 +290,8 @@ public class AddBookmarks extends HFrame implements ActionListener,
         addedString += (htmp + "#");
         addedString += (utmp + "#");
 
-        addedString += (ptmp + "#");
+        // Limit exposure: the bookmark keeps the account. The password is asked for on connect.
+        addedString += (Settings.hiddenPassword + "#");
         addedString += (potmp + "#");
         addedString += (dirOrDomtmp + "#");
         addedString += localString;
@@ -326,6 +320,8 @@ public class AddBookmarks extends HFrame implements ActionListener,
 
         if(andConnect)
         {
+            String ptmp = UIUtils.getPasswordFromUser(JFtp.statusP.jftp);
+
             if(protocoltmp.equals("FTP"))
             {
                 StartConnection.startFtpCon(htmp, utmp, ptmp, potmpint,

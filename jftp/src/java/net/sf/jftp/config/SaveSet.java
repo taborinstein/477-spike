@@ -32,14 +32,8 @@ public class SaveSet
             out.println(host);
             out.println(user);
 
-            if(Settings.getStorePasswords())
-            {
-            	savePW(pass, out);
-            }
-            else
-            {
-                out.println("");
-            }
+            // Limit exposure: remember the host and user, never the password.
+            out.println("");
 
             out.println(name);
             out.println(port);
@@ -60,14 +54,8 @@ public class SaveSet
             out.println(host);
             out.println(user);
 
-            if(Settings.getStorePasswords())
-            {
-                savePW(pass, out);
-            }
-            else
-            {
-                out.println("");
-            }
+            // Limit exposure: remember the host and user, never the password.
+            out.println("");
 
             out.println(port);
             out.println(cwd);
@@ -79,19 +67,6 @@ public class SaveSet
         }
     }
 
-    private void savePW(String pass, PrintStream out) throws Exception {
-        String coded = Crypto.Encrypt(pass);
-        if(coded == "")
-        {
-            // we failed to encrypt for some reason, so lets just save it
-            out.println(pass);
-        }
-        else
-        {
-            out.println(coded);
-        }    	
-    }
-    
     //***
     //***this is for saving advanced option data
     //***ideally, we'd have it set up so that common code in

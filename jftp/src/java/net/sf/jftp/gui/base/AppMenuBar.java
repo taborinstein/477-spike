@@ -127,9 +127,6 @@ public class AppMenuBar extends JMenuBar implements ActionListener
                                                           Settings.getEnableSftpMultiThreading());
     JCheckBoxMenuItem sshKeys = new JCheckBoxMenuItem("Enable Host Key check",
                                                       Settings.getEnableSshKeys());
-    JCheckBoxMenuItem storePasswords = new JCheckBoxMenuItem("Store passwords (encrypted using internal password)",
-            Settings.getStorePasswords());
-
     JCheckBoxMenuItem useNewIcons = new JCheckBoxMenuItem("Use Silk Icons",
             Settings.getUseNewIcons());
     
@@ -198,7 +195,6 @@ public class AppMenuBar extends JMenuBar implements ActionListener
         localWebdavCon.addActionListener(this);
         closeLocalCon.addActionListener(this);
         add.addActionListener(this);
-        storePasswords.addActionListener(this);
         rssDisabled.addActionListener(this);
         loadRss.addActionListener(this);
         loadSlash.addActionListener(this);
@@ -233,7 +229,6 @@ public class AppMenuBar extends JMenuBar implements ActionListener
         sftp.add(sftpThreads);
         sftp.add(sshKeys);
         security.add(askToDelete);
-        security.add(storePasswords);
 
         cnn.add(loadCNN1);
         cnn.add(loadCNN2);
@@ -907,48 +902,6 @@ public class AppMenuBar extends JMenuBar implements ActionListener
 	        {
 	            ((BookmarkItem) e.getSource()).connect();
 	        }
-	        else if(e.getSource() == storePasswords)
-	        {
-	            boolean state = storePasswords.getState();
-	
-	            if(!state)
-	            {
-	                JOptionPane j = new JOptionPane();
-	                int x = j.showConfirmDialog(storePasswords,
-	                                            "You chose not to Save passwords.\n" +
-	                                            "Do you want your old login data to be deleted?",
-	                                            "Delete old passwords?",
-	                                            JOptionPane.YES_NO_OPTION);
-	
-	                if(x == JOptionPane.YES_OPTION)
-	                {
-	                    File f = new File(Settings.login_def);
-	                    f.delete();
-	
-	                    f = new File(Settings.login_def_sftp);
-	                    f.delete();
-	
-	                    f = new File(Settings.login_def_nfs);
-	                    f.delete();
-	
-	                    f = new File(Settings.login_def_smb);
-	                    f.delete();
-	
-	                    f = new File(Settings.login);
-	                    f.delete();
-	
-	                    f = new File(Settings.last_cons);
-	                    f.delete();
-	
-	                    Log.debug("Deleted old login data files.\n" +
-	                              "Please edit your bookmarks file manually!");
-	                }
-	            }
-	
-	            Settings.setProperty("jftp.security.storePasswords", state);
-	            Settings.save();
-	        }
-	
 	        //*** END OF NEW LISTENERS
 	        else
 	        {

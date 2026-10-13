@@ -86,11 +86,11 @@ public class BookmarkManager extends JInternalFrame implements ActionListener
         info.append("#\n");
         info.append("# Note: not all values are used by every connection, but all fields must contain at least\n");
         info.append("# one character.\n");
-        info.append("Use \"<%hidden%>\" for password fields you don't want to fill out.");
+        info.append("# Passwords are not stored. The password field is <%hidden%> and is asked for on connect.\n");
         info.append("#\n");
         info.append("# protocol: FTP, SFTP, SMB or NFS (uppercase)\n");
         info.append("# host: hostname or ip for ftp + sftp, valid url for smb + nfs  (\"(LAN)\" for smb lan browsing)\n");
-        info.append("# user, password: the login data\n");
+        info.append("# user: the login name. password: always <%hidden%>\n");
         info.append("# port: this must be a number (even if it is not used for smb+nfs, set it in the url for nfs)\n");
         info.append("# dir/domain: inital directory for the connection, domainname for smb\n");
         info.append("# local: \"true\" if connection should be opened in local tab, \"false\" otherwise\n");
@@ -99,12 +99,12 @@ public class BookmarkManager extends JInternalFrame implements ActionListener
         info.append("#\n");
         info.append("#\n");
         info.append("\n<dir>JFtp</dir>\n");
-        info.append("FTP#upload.sourceforge.net#anonymous#j-ftp@sf.net#21#/incoming#false\n");
+        info.append("FTP#upload.sourceforge.net#anonymous#<%hidden%>#21#/incoming#false\n");
         info.append("<enddir>\n");
         info.append("\n");
-        info.append("FTP#ftp.kernel.org#anonymous#j-ftp@sf.net#21#/pub/linux/kernel/v2.6#false\n");
+        info.append("FTP#ftp.kernel.org#anonymous#<%hidden%>#21#/pub/linux/kernel/v2.6#false\n");
         info.append("\n");
-        info.append("SMB#(LAN)#guest#guest#-1#-#false\n\n");
+        info.append("SMB#(LAN)#guest#<%hidden%>#-1#-#false\n\n");
     }
 
     private void load(String file)
@@ -139,7 +139,7 @@ public class BookmarkManager extends JInternalFrame implements ActionListener
         {
             PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(file)));
 
-            out.println(info.getText());
+            out.println(StoredPasswordScrubber.scrubBookmarkText(info.getText()));
             out.flush();
             out.close();
         }
