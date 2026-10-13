@@ -1,11 +1,16 @@
+# M3 =========================== All this does is run the server ===============================
+
+
 """
-Victim FTP server for AitM attack.
+Victim FTP server for the AitM attack (plaintext demo).
 
 This is an ordinary, *correctly configured* pyftpdlib server: the student
 account can change directory, list, and download the exam, and has no write
-access. Nothing here is misconfigured. 
+access. Nothing here is misconfigured.
 
-Run:  python -m ftp_server.py [host] [port] [root]
+Run:  python ftp_server.py [host] [port] [root]
+Credentials default to student / RHITspr26!exam, or come from the
+FTP_DEMO_USER / FTP_DEMO_PASS environment variables (attack.ps1 sets these).
 """
 
 import logging
@@ -21,12 +26,13 @@ HOST = sys.argv[1] if len(sys.argv) > 1 else "127.0.0.1"
 PORT = int(sys.argv[2]) if len(sys.argv) > 2 else 2121
 ROOT = os.path.abspath(
     sys.argv[3] if len(sys.argv) > 3
-    else os.path.join(os.path.dirname(__file__), "server_root")
+    else os.path.join(os.path.dirname(os.path.abspath(__file__)), "server_root")
 )
 
-# Legitimate student credentials
-FTP_USER = "student"
-FTP_PASS = "RHITspr26!exam"
+# Legitimate student credentials (overridable via environment so the
+# launcher's -User / -Pass are honored).
+FTP_USER = os.environ.get("FTP_DEMO_USER", "student")
+FTP_PASS = os.environ.get("FTP_DEMO_PASS", "RHITspr26!exam")
 
 
 def main():

@@ -4,9 +4,9 @@
 -----------------------------------------------------------------------------
   Same scenario as the Linux version, using only native Windows pieces:
 
-    server : Python + pyftpdlib        (the repo copy in .\pyftpdlib)
-    client : any ftp client is usable  (classic open/user/get/quit commands)
-    sniffer: dumpcap on the Npcap       (localhost capture on Windows)
+    server : Python + pyftpdlib        (ftp_server.py in this folder)
+    client : ftp.exe                   (classic open/user/get/quit commands)
+    sniffer: dumpcap on Npcap          (localhost capture on Windows)
     analyze: tshark + extract_secrets.py
 
   It starts the server, passively captures loopback, runs a normal student
@@ -24,11 +24,10 @@
   Point it at an already-running server instead of starting one:
     .\attack.ps1 -StartServer:$false -Port 2121 -User student -Pass 'secret'
 
-  To run on a JFTP client:
+  To capture a JFTP client session instead of ftp.exe:
     .\attack.ps1 -Manual
-    Connect JFTP to 127.0.0.1:2121 and log in as student RHITspr26!exam
-    Download the exam.txt, then press Enter in the console when done. This will
-      capture the real JFtP traffic
+    Connect JFTP to 127.0.0.1:2121, log in as student / RHITspr26!exam,
+    download exam.txt, then press Enter in the console when done.
 =============================================================================
 #>
 [CmdletBinding()]
@@ -48,6 +47,7 @@ $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Here
 $CapDir = Join-Path $Here "capture"
 $Loot   = Join-Path $Here "loot"
+$Root   = Join-Path $Here "server_root"
 $Pcap   = Join-Path $CapDir "ftp_session.pcap"
 
 function Hdr($t){ Write-Host "`n>>> $t" -ForegroundColor Cyan }
@@ -75,8 +75,7 @@ if($fatal){ $fatal | ForEach-Object { Write-Host "ERROR: $_" -ForegroundColor Re
 
 & $python -c "import pyftpdlib" 2>$null
 if($LASTEXITCODE -ne 0){
-  Write-Host "ERROR: pyftpdlib not importable. Run this from the jftp\ folder (so" -ForegroundColor Red
-  Write-Host "       .\pyftpdlib is used) or: pip install pyftpdlib" -ForegroundColor Red
+  Write-Host "ERROR: pyftpdlib not importable. Run: pip install pyftpdlib" -ForegroundColor Red
   exit 1
 }
 # so extract_secrets.py (which shells out to tshark) can find it:
@@ -97,6 +96,11 @@ $ifaceId = ($loopLine -split '\.')[0].Trim()
 # ------------------------------------------------------------- bookkeeping --
 Remove-Item -Recurse -Force $CapDir, $Loot -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $CapDir, $Loot | Out-Null
+# make sure the server has a root with the exam (so ftp_server.py has content)
+if(-not (Test-Path $Root)){ New-Item -ItemType Directory -Path $Root | Out-Null }
+if(-not (Test-Path (Join-Path $Root "exam.txt"))){
+  Set-Content -Path (Join-Path $Root "exam.txt") -Encoding ascii -Value "TOP SECRET EXAM`r`nAnswer to Q1: 42"
+}
 $serverProc = $null
 $weStarted  = $false
 
@@ -210,7 +214,7 @@ quit
   & $ftpExe -n "-s:$replayFile" 2>&1 |
       Where-Object { $_ -match '230|226|exam.txt|denied|530' } |
       ForEach-Object { Write-Host "      $_" }
-  $orig = Join-Path $Here "server_root\exam.txt"
+  $orig = Join-Path $Root "exam.txt"
   $rep  = Join-Path $Loot "replayed_exam.txt"
   if((Test-Path $rep) -and -not (Compare-Object (Get-Content $orig) (Get-Content $rep))){
     Write-Host "   REPLAY SUCCESSFUL -- the stolen credentials are valid; the" -ForegroundColor Green

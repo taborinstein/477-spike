@@ -1,3 +1,6 @@
+# 
+# # NOTE: A cert and key need to exist for the JFTP to work with mitm
+# 
 # Generate a self-signed cert (cert.pem + key.pem) next to this script.
 # Uses the 'cryptography' library (installed with pyftpdlib/pyOpenSSL)
 import datetime, ipaddress, os
