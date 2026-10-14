@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="doc"/>
-	<classpathentry kind="src" path="src/java"/>
+	<classpathentry excluding="*.txt|*.html|*.css|*.jnlp|*.sh|javadoc/|nfsinfo|**/CVS/**" kind="src" path="doc"/>
+	<classpathentry excluding="**/CVS/**" kind="src" path="src/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry exported="true" kind="lib" path="lib"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
