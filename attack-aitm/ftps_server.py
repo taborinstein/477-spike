@@ -15,7 +15,6 @@ h.keyfile = os.path.join(HERE, "key.pem")
 h.authorizer = auth
 h.tls_control_required = True
 h.tls_data_required = True
-h.passive_ports = range(60000, 60011)
 h.masquerade_address = "127.0.0.1"
 srv = FTPServer(("127.0.0.1", PORT), h)
 print(f"FTPS server listening on 127.0.0.1:{PORT}", flush=True)
