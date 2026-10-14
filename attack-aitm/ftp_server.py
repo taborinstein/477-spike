@@ -47,8 +47,6 @@ def main():
     handler = FTPHandler
     handler.authorizer = authorizer
     handler.banner = "RHIT-Exam-FTP 1.0 ready."
-    # Pin the passive data-port range so the capture/analysis is deterministic.
-    handler.passive_ports = range(60000, 60011)
     # Advertise 127.0.0.1 in PASV replies (loopback demo).
     handler.masquerade_address = HOST
 
