@@ -377,6 +377,11 @@ class FTPHandler(AsyncChat):
         When configured pyftpdlib will no longer use kernel-assigned
         random ports (default None).
 
+      - (collection) site_chmod_users:
+          optional usernames allowed to use SITE CHMOD. A listed user must
+          also have the "M" permission in the authorizer. Defaults to None,
+          which only applies the authorizer permission check.
+
      - (bool) use_gmt_times:
         when True causes the server to report all ls and MDTM times in
         GMT and not local time (default True).
@@ -436,6 +441,7 @@ class FTPHandler(AsyncChat):
     masquerade_address_map = {}
     passive_ports = None
     use_gmt_times = True
+    site_chmod_users = None
     use_sendfile = hasattr(os, "sendfile")  # added in python 3.3
     tcp_no_delay = hasattr(socket, "TCP_NODELAY")
     encoding = "utf8"
@@ -789,7 +795,10 @@ class FTPHandler(AsyncChat):
             # check permission
             perm = self.proto_cmds[cmd]["perm"]
             if perm is not None and cmd != "STOU":
-                if not self.authorizer.has_perm(self.username, perm, arg):
+                allowed = self.authorizer.has_perm(self.username, perm, arg)
+                if cmd == "SITE CHMOD" and self.site_chmod_users is not None:
+                    allowed = allowed and self.username in self.site_chmod_users
+                if not allowed:
                     msg = "Not enough privileges."
                     self.respond("550 " + msg)
                     self.log_cmd(cmd, arg, 550, msg)

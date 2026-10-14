@@ -699,6 +699,59 @@ class TestFtpFsOperations(PyftpdlibTestCase):
                 assert getmode() == "0555"
 
 
+class ChmodWhitelistHandler(FTPHandler):
+    site_chmod_users = frozenset(
+        {"chmod_allowed", "chmod_without_permission"}
+    )
+
+
+class ChmodWhitelistServer(FtpdThreadWrapper):
+    handler = ChmodWhitelistHandler
+
+
+class TestSiteChmodWhitelist(PyftpdlibTestCase):
+    server_class = ChmodWhitelistServer
+    client_class = ftplib.FTP
+
+    def setUp(self):
+        super().setUp()
+        self.server = self.server_class()
+        authorizer = self.server.handler.authorizer
+        authorizer.add_user("chmod_allowed", PASSWD, HOME, perm="elrM")
+        authorizer.add_user("chmod_denied", PASSWD, HOME, perm="elrM")
+        authorizer.add_user(
+            "chmod_without_permission", PASSWD, HOME, perm="elr"
+        )
+        self.server.start()
+        self.client = self.client_class(timeout=GLOBAL_TIMEOUT)
+        self.client.connect(self.server.host, self.server.port)
+        self.testfile = self.get_testfn()
+        touch(self.testfile)
+
+    def tearDown(self):
+        close_client(self.client)
+        self.server.stop()
+        super().tearDown()
+
+    @pytest.mark.skipif(
+        not hasattr(os, "chmod"), reason="os.chmod unavailable"
+    )
+    def test_site_chmod_requires_allowlist_and_authorizer_permission(self):
+        original_mode = stat.S_IMODE(os.stat(self.testfile).st_mode)
+
+        self.client.login("chmod_denied", PASSWD)
+        with pytest.raises(ftplib.error_perm, match="Not enough privileges"):
+            self.client.sendcmd("site chmod 600 " + self.testfile)
+        assert stat.S_IMODE(os.stat(self.testfile).st_mode) == original_mode
+
+        self.client.login("chmod_allowed", PASSWD)
+        self.client.sendcmd("site chmod 600 " + self.testfile)
+
+        self.client.login("chmod_without_permission", PASSWD)
+        with pytest.raises(ftplib.error_perm, match="Not enough privileges"):
+            self.client.sendcmd("site chmod 644 " + self.testfile)
+
+
 class CustomIO(io.RawIOBase):
 
     def __init__(self):

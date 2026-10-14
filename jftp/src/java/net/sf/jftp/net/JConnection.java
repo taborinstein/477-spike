@@ -261,4 +261,22 @@ public class JConnection implements Runnable, JConnectable
 	public void setOut(PrintStream out) {
 		this.out = out;
 	}
+
+    // ========================================== M3: Start the TLS ======================================
+    /**  
+     * Get the control channel to do TLS
+     */
+    public boolean startTLS() {
+        try {
+            s = FtpsTLS.wrapClient(s, host, port);
+            out = new PrintStream(new BufferedOutputStream(s.getOutputStream(), Settings.bufferSize));
+            in = new BufferedReader(new InputStreamReader(s.getInputStream()), Settings.bufferSize);
+            Log.debug("JConnection now using TLS");
+            return true;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Log.out("WARNING: JConnection TLS failed (" + host + ":" + port + ")");
+            return false;
+        }
+    }
 }

@@ -250,6 +250,17 @@ public class DataConnection implements Runnable, DataConnectable
                 }
             }
 
+            // ======================================= M3: Wrap the data channel with TLS ======================
+            if(ok && Settings.useFtps && (sock != null)) {
+                try {
+                    sock = FtpsTLS.wrapClient(sock, host, port);
+                } catch(Exception ex) {
+                    ex.printStackTrace();
+                    debug("TLS handshake on data connection failed.");
+                    ex.printStackTrace();
+                }
+            }
+
             if(ok)
             {
                 byte[] buf = new byte[Settings.bufferSize];

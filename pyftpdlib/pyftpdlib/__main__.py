@@ -10,6 +10,7 @@ $ python3 -m pyftpdlib
 
 import argparse
 import codecs
+import json
 import logging
 import os
 import warnings
@@ -117,6 +118,55 @@ def parse_file_path(value):
     return value
 
 
+def parse_user_config(value):
+    try:
+        with open(value, encoding="utf-8") as file:
+            config = json.load(file)
+    except (OSError, json.JSONDecodeError) as err:
+        raise argparse.ArgumentTypeError(
+            f"cannot read configuration file {value!r}: {err}"
+        ) from None
+
+    if not isinstance(config, dict):
+        raise argparse.ArgumentTypeError("config must be a JSON object")
+    users = config.get("users")
+    chmod_users = config.get("site_chmod_users", [])
+    if not isinstance(users, dict) or not users:
+        raise argparse.ArgumentTypeError(
+            "config 'users' must be a non-empty object"
+        )
+    for username, account in users.items():
+        if not isinstance(username, str) or not username:
+            raise argparse.ArgumentTypeError(
+                "config usernames must be non-empty strings"
+            )
+        if not isinstance(account, dict):
+            raise argparse.ArgumentTypeError(
+                f"config user {username!r} must be an object"
+            )
+        if not isinstance(account.get("password"), str):
+            raise argparse.ArgumentTypeError(
+                f"config user {username!r} needs a string password"
+            )
+        if not isinstance(account.get("permissions"), str):
+            raise argparse.ArgumentTypeError(
+                f"config user {username!r} needs a string permissions value"
+            )
+    if not isinstance(chmod_users, list) or not all(
+        isinstance(username, str) for username in chmod_users
+    ):
+        raise argparse.ArgumentTypeError(
+            "config 'site_chmod_users' must be a list of usernames"
+        )
+    unknown_users = set(chmod_users) - users.keys()
+    if unknown_users:
+        raise argparse.ArgumentTypeError(
+            "config 'site_chmod_users' contains undefined users: "
+            + ", ".join(sorted(unknown_users))
+        )
+    return config
+
+
 def parse_args(args=None):
     usage = "python3 -m pyftpdlib [options]"
     parser = argparse.ArgumentParser(
@@ -203,6 +253,15 @@ def parse_args(args=None):
         default=None,
         help=(
             "specify a password to login with (username required to be useful)"
+        ),
+    )
+    group_main.add_argument(
+        "--config",
+        type=parse_user_config,
+        metavar="PATH",
+        help=(
+            "JSON file defining FTP users, permissions, and optional "
+            "SITE CHMOD allowlist"
         ),
     )
     group_main.add_argument(
@@ -346,6 +405,11 @@ def main(args=None):
     """Start a standalone anonymous FTP server."""
     opts = parse_args(args=args)
 
+    if opts.config and (opts.username or opts.password or opts.write):
+        raise argparse.ArgumentTypeError(
+            "--config cannot be combined with --username, --password, or --write"
+        )
+
     if opts.debug:
         config_logging(level=logging.DEBUG)
 
@@ -356,17 +420,30 @@ def main(args=None):
         opts.interface = "0.0.0.0"
 
     authorizer = DummyAuthorizer()
-    perm = "elradfmwMT" if opts.write else "elr"
-    if opts.username:
-        if not opts.password:
-            raise argparse.ArgumentTypeError(
-                "if username (-u) is supplied, password (-P) is required"
+    if opts.config:
+        for username, account in opts.config["users"].items():
+            authorizer.add_user(
+                username,
+                account["password"],
+                opts.directory,
+                perm=account["permissions"],
             )
-        authorizer.add_user(
-            opts.username, opts.password, opts.directory, perm=perm
+        site_chmod_users = frozenset(
+            opts.config.get("site_chmod_users", [])
         )
     else:
-        authorizer.add_anonymous(opts.directory, perm=perm)
+        perm = "elradfmwMT" if opts.write else "elr"
+        if opts.username:
+            if not opts.password:
+                raise argparse.ArgumentTypeError(
+                    "if username (-u) is supplied, password (-P) is required"
+                )
+            authorizer.add_user(
+                opts.username, opts.password, opts.directory, perm=perm
+            )
+        else:
+            authorizer.add_anonymous(opts.directory, perm=perm)
+        site_chmod_users = None
 
     # FTP or FTPS?
     if opts.tls:
@@ -392,6 +469,7 @@ def main(args=None):
 
     # Configure handler.
     handler.authorizer = authorizer
+    handler.site_chmod_users = site_chmod_users
     handler.masquerade_address = opts.nat_address
     handler.passive_ports = opts.range
     handler.timeout = opts.timeout

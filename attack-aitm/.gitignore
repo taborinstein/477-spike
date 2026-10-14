@@ -1,0 +1,23 @@
+# --- TLS private keys & certificates (NEVER commit) ---
+*.pem
+*.key
+*.jks            # Java keystore / truststore (keytool)
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# --- packet captures ---
+*.pcap
+*.pcapng
+
+# --- attack / demo runtime output ---
+capture/
+loot/
+download/
+victim_dl.txt
+curltest.txt
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
