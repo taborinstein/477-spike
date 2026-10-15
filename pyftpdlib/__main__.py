@@ -15,7 +15,7 @@ import os
 import warnings
 
 from . import servers
-from .authorizers import DummyAuthorizer
+from .authorizers import IPLockedAuthorizer
 from .handlers import FTPHandler
 from .log import config_logging
 from .prefork import cpu_count
@@ -355,7 +355,7 @@ def main(args=None):
     if os.name in ("nt", "ce") and not opts.interface:
         opts.interface = "0.0.0.0"
 
-    authorizer = DummyAuthorizer()
+    authorizer = IPLockedAuthorizer()
     perm = "elradfmwMT" if opts.write else "elr"
     if opts.username:
         if not opts.password:
@@ -365,6 +365,7 @@ def main(args=None):
         authorizer.add_user(
             opts.username, opts.password, opts.directory, perm=perm
         )
+        authorizer.set_allowed_ip(opts.username, "127.0.0.1")
     else:
         authorizer.add_anonymous(opts.directory, perm=perm)
 

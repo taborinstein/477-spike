@@ -19,6 +19,7 @@ interact with UNIX and Windows password database.
 
 import os
 import warnings
+from ipaddress import ip_address
 
 from .exceptions import AuthenticationFailed
 from .exceptions import AuthorizerError
@@ -247,7 +248,32 @@ class DummyAuthorizer:
         p2 = b.rstrip(os.sep).split(os.sep)
         return p1[: len(p2)] == p2
 
+class IPLockedAuthorizer(DummyAuthorizer):
+    from ipaddress import ip_address
 
+    def __init__(self):
+        super().__init__()
+        self.allowed_ips = {}
+
+    def set_allowed_ip(self, username, address):
+            
+        if not self.has_user(username):
+            raise ValueError("Unknown FTP username")
+
+        self.allowed_ips[username] = ip_address(address)
+
+    def validate_authentication(self, username, password, handler):
+        from ipaddress import ip_address
+
+        super().validate_authentication(username, password, handler)
+
+        expected_ip = self.allowed_ips.get(username)
+        actual_ip = ip_address(handler.remote_ip)
+
+        if expected_ip is None or actual_ip != expected_ip:
+            raise AuthenticationFailed("Authentication failed.")
+
+        
 def replace_anonymous(callable):
     """A decorator to replace anonymous user string passed to authorizer
     methods as first argument with the actual user used to handle
@@ -918,3 +944,5 @@ else:  # pragma: no cover
             else:
                 home = BaseWindowsAuthorizer.get_home_dir(self, username)
             return home
+        
+    
